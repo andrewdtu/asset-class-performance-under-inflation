@@ -10,7 +10,8 @@ knitr::opts_chunk$set()
 
 library(tidyverse)
 library(ggplot2)
-library(imputeTS)
+library(ggthemes)
+library(lubridate)
 #interest <- read_csv('https://github.com/andrewdtu/stat479group3/blob/main/stock.csv?raw=true')
 ```
 
@@ -20,8 +21,9 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars, fig.height = 30, fig.width = 8}
-interest <- read_csv('https://github.com/andrewdtu/stat479group3/blob/main/stock.csv?raw=true')
+```{r wrangle}
+interest <- read_csv('stock.csv')%>%
+  mutate(Date = as_datetime(Date))
 
 interest$EFFR[which(interest$EFFR == ".")] <- NA 
 
@@ -31,12 +33,15 @@ interest_2 <-interest%>%
   mutate(EFFR = as.numeric(EFFR))%>%
   group_by(ticker)%>%
   ungroup()
+```
 
+```{r close, fig.height = 15, fig.width = 8}
 
 
 ggplot(interest_2, aes(x=Date,y=Close,color = as.numeric(EFFR)))+
-    geom_line(aes(),size = 0.3)+
-    facet_grid(ticker~.)
+    geom_line(aes(),size = 1)+
+    facet_grid(ticker~.,scales = 'free_y')+
+    scale_color_viridis_c(option = 'inferno')
 
 ```
 
@@ -46,13 +51,20 @@ ggplot(interest_2,aes(x=Date,y=EFFR))+
 ```
 
 ```{r 2 periods}
-period_1_start = '2005-01-'
-period_1_end = '2007-06-15'
-period_2_start = '2017-01-01'
-period_2_end = '2020-02-01'
+period_1_start = as_datetime('2005-01-12')
+period_1_end = as_datetime('2007-06-15')
+period_2_start = as_datetime('2017-01-03')
+period_2_end = as_datetime('2020-02-03')
 
 interest_periods <- interest_2%>%
   filter(!ticker %in% c('XOP','XME','GDX'))%>%
-  filter(Date == c(period_1_start,period_1_end,period_2_start,period_2_end))
+  select(ticker,Date,Close)%>%
+  filter(Date %in% c(period_1_start,period_1_end,period_2_start,period_2_end))%>%
+  pivot_wider(names_from = Date, values_from = Close)%>%
+  mutate(period_1_return = (`2007-06-15`-`2005-01-12`)/`2005-01-12`)%>%
+  mutate(period_2_return = (`2020-02-03`-`2017-01-03`)/`2017-01-03`)
+ggplot(interest_periods, aes(period_1_return,period_2_return,color = ticker))+
+  geom_point(size = 5)+
+  scale_color_tableau()
 
 ```
