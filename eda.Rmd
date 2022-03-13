@@ -12,7 +12,7 @@ library(tidyverse)
 library(ggplot2)
 library(ggthemes)
 library(lubridate)
-#interest <- read_csv('https://github.com/andrewdtu/stat479group3/blob/main/stock.csv?raw=true')
+interest <- read_csv('https://github.com/andrewdtu/stat479group3/blob/main/stock.csv?raw=true')
 ```
 
 ## R Markdown
@@ -22,7 +22,7 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
 ```{r wrangle}
-interest <- read_csv('stock.csv')%>%
+interest <- read_csv('https://github.com/andrewdtu/stat479group3/raw/main/stock.csv')%>%
   mutate(Date = as_datetime(Date))
 
 interest$EFFR[which(interest$EFFR == ".")] <- NA 
@@ -35,22 +35,24 @@ interest_2 <-interest%>%
   ungroup()
 ```
 
-```{r close, fig.height = 15, fig.width = 8}
+```{r close, fig.height = 18, fig.width = 8}
 
 
 ggplot(interest_2, aes(x=Date,y=Close,color = as.numeric(EFFR)))+
     geom_line(aes(),size = 1)+
     facet_grid(ticker~.,scales = 'free_y')+
-    scale_color_viridis_c(option = 'inferno')
+    scale_color_viridis_c(option = 'inferno') + 
+    labs(title = "Effective Federal Fund Rates for Each ETF Over Time", x = "Year", y = "Closing Price")
 
 ```
 
-```{r effr}
+```{r effr, fig.height = 5, fig.width = 8}
 ggplot(interest_2,aes(x=Date,y=EFFR))+
-  geom_line(Size = 2)
+  geom_line(Size = 2)+
+  labs(title = "EFFR Rates for 2nd Interest Period", x = "Year", y = "EFFR (%)")
 ```
 
-```{r 2 periods}
+```{r 2 periods, fig.height = 4, fig.width = 8}
 period_1_start = as_datetime('2005-01-12')
 period_1_end = as_datetime('2007-06-15')
 period_2_start = as_datetime('2017-01-03')
@@ -64,7 +66,9 @@ interest_periods <- interest_2%>%
   mutate(period_1_return = (`2007-06-15`-`2005-01-12`)/`2005-01-12`)%>%
   mutate(period_2_return = (`2020-02-03`-`2017-01-03`)/`2017-01-03`)
 ggplot(interest_periods, aes(period_1_return,period_2_return,color = ticker))+
-  geom_point(size = 5)+
-  scale_color_tableau()
+  labs(title = "The Return Rate For Each ETF in Period 1 VS Period 2", x = "Period 1 return rate (%)", y = "Period 2 return rate (%)")+
+  geom_point(size = 8)+
+  scale_color_tableau() 
+  
 
 ```
