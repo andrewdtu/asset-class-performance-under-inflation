@@ -1,0 +1,60 @@
+---
+title: "portfolio randomizer"
+author: "Andrew Tu"
+date: "4/5/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+period1 <- read_csv('stock_period1.csv')
+colnames(period1)[1] <- 'col1'
+period1 <- period1%>%
+  column_to_rownames('col1')
+
+
+period2 <- read_csv('stock_period2.csv')
+colnames(period2)[1] <- 'col1'
+period2 <- period2%>%
+  column_to_rownames('col1')
+```
+
+
+```{r period 1}
+n_1 = 10
+
+portfolio = data.frame()
+portfolio$returns <- double()
+portfolio$sd <- double()
+portfolio$`returns/sd` <- double()
+
+weights_array = list()
+
+
+total_returns = as.double(((tail(period1,1)-head(period1,1))/head(period1,1))[1,])
+num_of_portfolios = n_1
+num_of_stocks = ncol(period1)
+stock_returns = lead(period1,1)/period1-1
+
+for (i in 1:num_of_portfolios){
+  rnd_nums = runif(12)
+  weights = rnd_nums/sum(rnd_nums)
+  
+  weights_array <- append(weights_array,weights)
+  portfolio[i,1] <- sum(total_returns*weights)
+  portfolio_returns <- stock_returns*t(weights)
+  portfolio[i,2] <- sd(na.omit(as.double(rowSums(portfolio_returns))))*sqrt(252)
+  #portfolio[i,3] <- as.double(portfolio[i,1])/as.double(portfolio[i,2])
+  
+  
+   
+  
+}
+print(portfolio)
+#ggplot(portfolio)+
+ #geom_line(aes(x=returns))
+
+plot(portfolio)
+```
+
+
