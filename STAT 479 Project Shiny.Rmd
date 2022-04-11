@@ -240,7 +240,7 @@ ui <- fluidPage(
 
 server <- function(input,output) {
   dat <- reactive({
-    return(if ('Period 1' == "Period 1") period1 else period2)
+    return(if (input$period == "Period 1") period1 else period2)
            })
   
   output$trendplot <- renderPlot({
