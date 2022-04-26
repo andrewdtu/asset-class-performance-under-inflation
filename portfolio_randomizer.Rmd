@@ -272,7 +272,19 @@ portfolio_linreg <- function(portfolios, market, spx){
       y='SP500 return',
       title='Linear Regression of highest Sharpe ratio portfolio and SP500 return'
     )
-  return(p1)
+  return(two_returns)
 }
 portfolio_linreg(portfolios,period1, period1spx)
+```
+```{r debug4}
+portfolios<-portfolio_generator(period1,1000)
+max.return.risk <- portfolios[(portfolios$`returns/sd` == max(portfolios$`returns/sd`)),]
+weights <- max.return.risk[[4]][[1]]
+#totalr(period2)%>%
+ # mutate(weighted_return =total_returns*weights)
+#totalr(period2spx)
+
+
+portfolio_linreg(portfolios, period1,period1spx)%>%
+  colSums()
 ```
