@@ -7,92 +7,270 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 library(tidyverse)
-period1 <- read_csv('stock_period1.csv')
-colnames(period1)[1] <- 'col1'
-period1 <- period1%>%
-  column_to_rownames('col1')
 
 
-period2 <- read_csv('stock_period2.csv')
-colnames(period2)[1] <- 'col1'
-period2 <- period2%>%
-  column_to_rownames('col1')
+
 ```
 
 
 ```{r period 1}
-n_1 = 1000
-
-portfolio = data.frame()
-portfolio$returns <- double()
-portfolio$sd <- double()
-portfolio$`returns/sd` <- double()
-
-weights_array = list()
-
-
-total_returns = as.double(((tail(period1,1)-head(period1,1))/head(period1,1))[1,])
-num_of_portfolios = n_1
-num_of_stocks = ncol(period1)
-stock_returns = lead(period1,1)/period1-1
-
-for (i in 1:num_of_portfolios){
-  rnd_nums = runif(12)
-  weights = rnd_nums/sum(rnd_nums)
-  
-  weights_array <- append(weights_array,weights)
-  portfolio[i,'returns'] <- sum(total_returns*weights)
-  portfolio_returns <- stock_returns*t(weights)
-  portfolio[i,'sd'] <- sd(na.omit(rowSums(portfolio_returns)))*sqrt(252)
-  portfolio[i,'returns/sd'] <- (portfolio[i,1])/as.double(portfolio[i,2])
-  
-  
-   
-  
-}
-
-ggplot(portfolio)+
- geom_point(aes(x=sd,y=returns))
-
-
 
 ```
+
+
 ```{r period2}
-n_2 = 1000
-
-portfolio = data.frame()
-portfolio$returns <- double()
-portfolio$sd <- double()
-portfolio$`returns/sd` <- double()
-
-weights_array = list()
-
-
-total_returns = as.double(((tail(period2,1)-head(period2,1))/head(period2,1))[1,])
-num_of_portfolios = n_1
-num_of_stocks = ncol(period2)
-stock_returns = lead(period2,1)/period2-1
-
-for (i in 1:num_of_portfolios){
-  rnd_nums = runif(12)
-  weights = rnd_nums/sum(rnd_nums)
-  
-  weights_array <- append(weights_array,weights)
-  portfolio[i,'returns'] <- sum(total_returns*weights)
-  portfolio_returns <- stock_returns*t(weights)
-  portfolio[i,'sd'] <- sd(na.omit(rowSums(portfolio_returns)))*sqrt(252)
-  portfolio[i,'returns/sd'] <- (portfolio[i,1])/as.double(portfolio[i,2])
-  
-  
-   
-  
-}
-
-ggplot(portfolio)+
- geom_point(aes(x=sd,y=returns))
-
 
 
 
 ```
+```{r debug}
+require(tidyverse)
+require(shiny)
+require(tsibble)
+require(tsibbledata)
+require(lubridate)
+rm(list=ls())
 
+#Initial read in of data
+read_stock_data <- function(filename){
+  main_data <- read_csv(filename)
+  
+  colnames(main_data)[1] <- 'col1'
+  stock_data <- main_data%>%
+    column_to_rownames('col1')%>%
+    select(-'SPY')%>%
+    mutate_all(scale, center = FALSE, scale = FALSE)
+  return(stock_data)
+}
+
+read_spx_data <- function(filename){
+  main_data <- read_csv(filename)
+  
+  colnames(main_data)[1] <- 'col1'
+  spx_data <- main_data%>%
+    column_to_rownames('col1')%>%
+    select('SPY')%>%
+    mutate_all(scale, center = FALSE, scale = FALSE)
+  
+  return(spx_data)
+}
+
+
+period1 <- read_stock_data('stock_period1.csv')
+period2 <- read_stock_data('stock_period2.csv')
+period1spx <- read_spx_data('stock_period1.csv')
+period2spx <- read_spx_data('stock_period2.csv')
+
+tickers <- colnames(period1)
+
+#Creates a time series ggplot.
+#The ifs determine whether the trend is daily, weekly, or monthly
+time.series <- function(data,time = "Daily") {
+  longer <- data %>%
+    rownames_to_column(var = 'Period') %>%
+    mutate(Period = as.Date(Period)) %>%
+    pivot_longer(tickers, names_to = "Ticker", values_to = "Price")
+  
+  if (time == "Daily") {
+    newdata <- longer
+  }
+  if (time == "Weekly") {
+    newdata <- longer %>%
+      group_by(Period = floor_date(Period, "week"),Ticker) %>%
+      summarize(Price = mean(Price))
+  }
+  if (time == "Monthly") {
+    newdata <- longer %>%
+      group_by(Period = floor_date(Period, "month"),Ticker) %>%
+      summarize(Price = mean(Price))
+  }
+  p1 = ggplot(newdata) +
+    geom_line(aes(x = Period, y = Price, color = Ticker)) +
+    labs(
+      x=paste0("Time (",time,")"),
+      y="Price",
+      title=paste0(time," Price Trend")
+    )
+  return(p1)
+}
+#print(time.series(data = period1, time = "Monthly"))
+
+#period1 %>%
+#    rownames_to_column('Period') %>%
+#  mutate(Period = as.Date(Period)) %>%
+#     pivot_longer(tickers, names_to = "Ticker", values_to = "Price")
+
+#Puts period data into data frame for total returns
+totalr <- function(data) {
+  total_returns_data <- data.frame(tickers,
+                                   total_returns = 
+                                     as.double(((tail(data,1)-head(data,1))/head(data,1))[1,]))
+  return(total_returns_data)
+}
+
+#Generates a bar plot for Total returns by ticker
+barp <- function(data) {
+  newdata <- totalr(data)
+  p1 <- ggplot(newdata) +
+    geom_bar(aes(x = total_returns,
+                 y = reorder(tickers,total_returns)),
+             stat = "identity") +
+    scale_x_continuous(expand = c(0, 0, 0.1, 0.1)) +
+    labs(
+      x = "Return",
+      y = "Ticker",
+      title = "Total Returns"
+    )
+  return(p1)
+}
+#print(barp(period1))
+
+#Generates a boxplot of prices for each ticker
+boxes <- function(data) {
+  longer <- data %>%
+    pivot_longer(tickers, names_to = "Ticker", values_to = "Price")
+  
+  p1 <- ggplot(longer) +
+    geom_boxplot(aes(x = Price, y = reorder(Ticker,Price,sd))) +
+    labs(
+      x = "Prices",
+      y = "Ticker",
+      title = "Ticker Volatility"
+    )
+  return(p1)
+}
+
+
+
+
+#print(boxes(period1))
+
+#Generates portfolios
+portfolio_generator <- function(data,num_of_portfolios) {
+  portfolio = data.frame()
+  portfolio$returns <- double()
+  portfolio$sd <- double()
+  portfolio$`returns/sd` <- double()
+  
+  weights_array = list()
+  
+  total_returns = as.double(((tail(data,1)-head(data,1))/head(data,1))[1,])
+  num_of_stocks = ncol(data)
+  stock_returns = lead(data,1)/data-1
+  
+  for (i in 1:num_of_portfolios){
+    rnd_nums = runif(ncol(data))
+    weights = rnd_nums/sum(rnd_nums)
+    
+    weights_array <- append(weights_array,weights)
+    portfolio[i,1] <- sum(total_returns*weights)
+    portfolio_returns <- stock_returns*t(weights)
+    portfolio[i,2] <- sd(na.omit(as.double(rowSums(portfolio_returns))))
+    portfolio[i,3] <- as.double(portfolio[i,1])/as.double(portfolio[i,2])
+  }
+  return(portfolio)
+}
+#print(portfolio_generator(period1,10))
+
+#Identifies observations with min risk and max return/risk
+#Then it gives a ggplot of the portfolio
+frontier <- function(data) {
+  min.risk <- data[(data$sd == min(data$sd)),]
+  max.return.risk <- data[(data$`returns/sd` == max(data$`returns/sd`)),]
+  p1 <- ggplot(data) +
+    geom_point(aes(x=sd,y=returns),pch=19) +
+    geom_point(data = min.risk,aes(x=sd,y=returns), col = "red",pch=17,cex=3) +
+    geom_point(data = max.return.risk,aes(x=sd,y=returns),
+               col="blue",pch=15,cex=3) +
+    labs(
+      x="Portfolio Standard Deviation",
+      y="Portfolio Returns",
+      title="Portfolio Optimization Based on Efficient Frontier"
+    )
+  #scale_color_manual(name = "hello", breaks = c("Random Portfolios",
+  #"Minimum Risk Portfolio","Max Sharpe Portfolio"),
+  #values = c("Random Portfolios"="black",
+  #"Minimum Risk Portfolio"="red",
+  #"Max Sharpe Portfolio"="blue"))
+  
+  return(p1)
+}
+```
+
+```{r debug2}
+
+
+period1 <- read_stock_data('stock_period1.csv')
+period2 <- read_stock_data('stock_period2.csv')
+period1spx <- read_spx_data('stock_period1.csv')
+period2spx <- read_spx_data('stock_period2.csv')
+```
+
+```{r debug3}
+portfolio_generator <- function(data,num_of_portfolios) {
+  portfolio = data.frame()
+  portfolio$returns <- double()
+  portfolio$sd <- double()
+  portfolio$`returns/sd` <- double()
+  
+  
+  weights_array = list()
+  
+  total_returns = as.double(((tail(data,1)-head(data,1))/head(data,1))[1,])
+  num_of_stocks = ncol(data)
+  stock_returns = lead(data,1)/data-1
+  
+  for (i in 1:num_of_portfolios){
+    rnd_nums = runif(ncol(data))
+    weights = rnd_nums/sum(rnd_nums)
+    
+    weights_array <- append(weights_array,list(weights))
+    portfolio[i,1] <- sum(total_returns*weights)
+    portfolio_returns <- stock_returns*t(weights)
+    portfolio[i,2] <- sd(na.omit(as.double(rowSums(portfolio_returns))))
+    portfolio[i,3] <- as.double(portfolio[i,1])/as.double(portfolio[i,2])
+    
+  }
+  portfolio$weights <- weights_array
+  return(portfolio)
+}
+
+
+portfolios <- portfolio_generator(period2,1000)
+
+
+portfolio_linreg <- function(portfolios, market, spx){
+  max.return.risk <- portfolios[(portfolios$`returns/sd` == max(portfolios$`returns/sd`)),]
+  weights <- max.return.risk[[4]][[1]]
+  return_data <- lead(market,1)/market-1
+  spx_return <- lead(spx,1)/spx-1
+  
+  market$returns <- as.matrix(return_data) %*% weights
+  two_returns <- data.frame(market$returns,spx_return)%>%
+    na.omit()
+  
+  fit <- lm(SPY~market.returns, data=two_returns)
+  
+  m <- lm(SPY~market.returns, data=two_returns);
+  eq <- substitute(italic(y) == a + b %.% italic(x)*"; "~~italic(r)^2~"="~r2, 
+         list(a = format(unname(coef(m)[1]), digits = 2),
+              b = format(unname(coef(m)[2]), digits = 2),
+             r2 = format(summary(m)$r.squared, digits = 3)))
+  
+
+  fit_label<- as.expression(eq)
+  
+  #print(two_returns)
+  p1 = ggplot(two_returns, aes(two_returns[[1]],two_returns[[2]]))+
+    geom_point()+
+    geom_line(data = fortify(fit), aes(x = market.returns, y = .fitted), color = 'red')+
+    geom_text(x = -0.02, y = 0.04, label = fit_label, parse = TRUE, color = 'red')+
+    labs(
+      x='Portfolio return',
+      y='SP500 return',
+      title='Linear Regression of highest Sharpe ratio portfolio and SP500 return'
+    )
+  return(p1)
+}
+portfolio_linreg(portfolios,period2, period2spx)
+```

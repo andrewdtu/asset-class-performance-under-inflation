@@ -17,16 +17,34 @@ require(lubridate)
 rm(list=ls())
 
 #Initial read in of data
-period1 <- read_csv('stock_period1.csv')
-colnames(period1)[1] <- 'Period'
-period1 <- period1%>%
-  column_to_rownames('Period')
+read_stock_data <- function(filename){
+  main_data <- read_csv(filename)
+  
+  colnames(main_data)[1] <- 'col1'
+  stock_data <- main_data%>%
+    column_to_rownames('col1')%>%
+    select(-'SPY')%>%
+    mutate_all(scale, center = FALSE, scale = FALSE)
+  return(stock_data)
+}
+
+read_spx_data <- function(filename){
+  main_data <- read_csv(filename)
+  
+  colnames(main_data)[1] <- 'col1'
+  spx_data <- main_data%>%
+    column_to_rownames('col1')%>%
+    select('SPY')%>%
+    mutate_all(scale, center = FALSE, scale = FALSE)
+  
+  return(spx_data)
+}
 
 
-period2 <- read_csv('stock_period2.csv')
-colnames(period2)[1] <- 'Period'
-period2 <- period2%>%
-  column_to_rownames('Period')
+period1 <- read_stock_data('stock_period1.csv')
+period2 <- read_stock_data('stock_period2.csv')
+period1spx <- read_spx_data('stock_period1.csv')
+period2spx <- read_spx_data('stock_period2.csv')
 
 tickers <- colnames(period1)
 
@@ -106,6 +124,10 @@ boxes <- function(data) {
     )
   return(p1)
 }
+
+
+
+
 #print(boxes(period1))
 
 #Generates portfolios
@@ -114,6 +136,7 @@ portfolio_generator <- function(data,num_of_portfolios) {
   portfolio$returns <- double()
   portfolio$sd <- double()
   portfolio$`returns/sd` <- double()
+  
   
   weights_array = list()
   
@@ -125,12 +148,14 @@ portfolio_generator <- function(data,num_of_portfolios) {
     rnd_nums = runif(ncol(data))
     weights = rnd_nums/sum(rnd_nums)
     
-    weights_array <- append(weights_array,weights)
+    weights_array <- append(weights_array,list(weights))
     portfolio[i,1] <- sum(total_returns*weights)
     portfolio_returns <- stock_returns*t(weights)
     portfolio[i,2] <- sd(na.omit(as.double(rowSums(portfolio_returns))))
     portfolio[i,3] <- as.double(portfolio[i,1])/as.double(portfolio[i,2])
+    
   }
+  portfolio$weights <- weights_array
   return(portfolio)
 }
 #print(portfolio_generator(period1,10))
@@ -162,6 +187,46 @@ frontier <- function(data) {
 
 
 
+# function to plot sp500 return and highest sharpe ratio portfolio return
+portfolio_linreg <- function(portfolios, market, spx){
+  max.return.risk <- portfolios[(portfolios$`returns/sd` == max(portfolios$`returns/sd`)),]
+  weights <- max.return.risk[[4]][[1]]
+  
+  
+  return_data <- lead(market,1)/market-1
+  spx_return <- lead(spx,1)/spx-1
+  #print(max.return.risk)
+  market$returns <- as.matrix(return_data) %*% weights
+  two_returns <- data.frame(market$returns,spx_return)%>%
+    na.omit()
+  
+  fit <- lm(SPY~market.returns, data=two_returns)
+  
+  m <- lm(SPY~market.returns, data=two_returns);
+  eq <- substitute(italic(y) == b %.% italic(x)+a*"; "~~italic(r)^2~"="~r2, 
+                   list(a = format(unname(coef(m)[1]), digits = 2),
+                        b = format(unname(coef(m)[2]), digits = 2),
+                        r2 = format(summary(m)$r.squared, digits = 3)))
+  
+  
+  fit_label<- as.expression(eq)
+  
+  #print(two_returns)
+  p1 = ggplot(two_returns, aes(two_returns[[1]],two_returns[[2]]))+
+    geom_point()+
+    geom_line(data = fortify(fit), aes(x = market.returns, y = .fitted), color = 'red')+
+    geom_text(x = -0.02, y = 0.02, label = fit_label, parse = TRUE, color = 'red')+
+    labs(
+      x='Portfolio return',
+      y='SP500 return',
+      title='Linear Regression of highest Sharpe ratio portfolio and SP500 return'
+    )
+  return(p1)
+}
+
+
+
+
 
 
 # Shiny:
@@ -184,6 +249,8 @@ ui <- fluidPage(
   plotOutput("bar"),
   plotOutput("box"),
   plotOutput("ports"),
+  plotOutput('linreg'),
+  
   
 )
 
@@ -191,6 +258,13 @@ server <- function(input,output) {
   dat <- reactive({
     return(if (input$period == "Period 1") period1 else period2)
   })
+  portfolios <- reactive({
+    return(portfolio_generator(dat(),input$sample))
+  })
+  spx_data <- reactive({
+    return(if (input$period == "Period 1") period1spx else period2spx)
+  })
+  
   
   output$trendplot <- renderPlot({
     time.series(dat(),input$time)
@@ -201,11 +275,13 @@ server <- function(input,output) {
   output$box <- renderPlot(boxes(dat()))
   
   output$ports <- renderPlot({
-    frontier(portfolio_generator(dat(),input$sample))
+    frontier(portfolios())
   })
-  
+  output$linreg <- renderPlot({
+    portfolio_linreg(portfolios(),dat(),spx_data())
+  })
   output$debug <- renderText({
-    paste0(as.list(input$period))
+    paste0()
   })
   
 }
