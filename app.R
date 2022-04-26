@@ -74,7 +74,7 @@ time.series <- function(data,time = "Daily") {
     geom_line(aes(x = Period, y = Price, color = Ticker)) +
     labs(
       x=paste0("Time (",time,")"),
-      y="Price",
+      y="Price scaled proportionately",
       title=paste0(time," Price Trend")
     )
   return(p1)
@@ -267,7 +267,9 @@ server <- function(input,output) {
   
   
   output$trendplot <- renderPlot({
-    time.series(dat(),input$time)
+    dat()%>%
+      mutate_all(scale,center=FALSE)%>%
+    time.series(input$time)
   })
   
   output$bar <- renderPlot(barp(dat()))
