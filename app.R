@@ -205,7 +205,7 @@ portfolio_linreg <- function(portfolios, market, spx){
   m <- lm(SPY~market.returns, data=two_returns);
   eq <- substitute(italic(y) == b %.% italic(x)+a*"; "~~italic(r)^2~"="~r2, 
                    list(a = format(unname(coef(m)[1]), digits = 2),
-                        b = format(unname(coef(m)[2]), digits = 2),
+                        b = format(unname(coef(m)[2]), digits = 3),
                         r2 = format(summary(m)$r.squared, digits = 3)))
   
   
@@ -235,7 +235,7 @@ portfolio_linreg <- function(portfolios, market, spx){
 
 
 time.options = c("Daily","Weekly","Monthly")
-sample.options = c(5,10,20,50,100,200,500,1000)
+sample.options = c(5,10,20,50,100,200,500,1000,5000,10000)
 period.options = c("Period 1","Period 2")
 
 ui <- fluidPage(

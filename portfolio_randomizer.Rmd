@@ -236,15 +236,17 @@ portfolio_generator <- function(data,num_of_portfolios) {
 }
 
 
-portfolios <- portfolio_generator(period2,1000)
+portfolios <- portfolio_generator(period2,10000)
 
 
 portfolio_linreg <- function(portfolios, market, spx){
   max.return.risk <- portfolios[(portfolios$`returns/sd` == max(portfolios$`returns/sd`)),]
   weights <- max.return.risk[[4]][[1]]
+  
+  
   return_data <- lead(market,1)/market-1
   spx_return <- lead(spx,1)/spx-1
-  
+  #print(max.return.risk)
   market$returns <- as.matrix(return_data) %*% weights
   two_returns <- data.frame(market$returns,spx_return)%>%
     na.omit()
@@ -252,19 +254,19 @@ portfolio_linreg <- function(portfolios, market, spx){
   fit <- lm(SPY~market.returns, data=two_returns)
   
   m <- lm(SPY~market.returns, data=two_returns);
-  eq <- substitute(italic(y) == a + b %.% italic(x)*"; "~~italic(r)^2~"="~r2, 
-         list(a = format(unname(coef(m)[1]), digits = 2),
-              b = format(unname(coef(m)[2]), digits = 2),
-             r2 = format(summary(m)$r.squared, digits = 3)))
+  eq <- substitute(italic(y) == b %.% italic(x)+a*"; "~~italic(r)^2~"="~r2, 
+                   list(a = format(unname(coef(m)[1]), digits = 2),
+                        b = format(unname(coef(m)[2]), digits = 3),
+                        r2 = format(summary(m)$r.squared, digits = 3)))
   
-
+  
   fit_label<- as.expression(eq)
   
   #print(two_returns)
   p1 = ggplot(two_returns, aes(two_returns[[1]],two_returns[[2]]))+
     geom_point()+
     geom_line(data = fortify(fit), aes(x = market.returns, y = .fitted), color = 'red')+
-    geom_text(x = -0.02, y = 0.04, label = fit_label, parse = TRUE, color = 'red')+
+    geom_text(x = -0.02, y = 0.02, label = fit_label, parse = TRUE, color = 'red')+
     labs(
       x='Portfolio return',
       y='SP500 return',
@@ -272,5 +274,5 @@ portfolio_linreg <- function(portfolios, market, spx){
     )
   return(p1)
 }
-portfolio_linreg(portfolios,period2, period2spx)
+portfolio_linreg(portfolios,period1, period1spx)
 ```
