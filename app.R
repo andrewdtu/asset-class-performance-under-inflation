@@ -9,7 +9,7 @@
 
 
 
-require(tidyverse)
+library(tidyverse)
 require(shiny)
 require(tsibble)
 require(tsibbledata)
@@ -200,9 +200,9 @@ portfolio_linreg <- function(portfolios, market, spx){
   two_returns <- data.frame(market$returns,spx_return)%>%
     na.omit()
   
-  fit <- lm(SPY~market.returns, data=two_returns)
+  fit <- lm(market.returns~SPY, data=two_returns)
   
-  m <- lm(SPY~market.returns, data=two_returns);
+  m <- lm(market.returns~SPY, data=two_returns);
   eq <- substitute(italic(y) == b %.% italic(x)+a*"; "~~italic(r)^2~"="~r2, 
                    list(a = format(unname(coef(m)[1]), digits = 2),
                         b = format(unname(coef(m)[2]), digits = 3),
@@ -212,14 +212,14 @@ portfolio_linreg <- function(portfolios, market, spx){
   fit_label<- as.expression(eq)
   
   #print(two_returns)
-  p1 = ggplot(two_returns, aes(two_returns[[1]],two_returns[[2]]))+
+  p1 = ggplot(two_returns, aes(two_returns[[2]],two_returns[[1]]))+
     geom_point()+
-    geom_line(data = fortify(fit), aes(x = market.returns, y = .fitted), color = 'red')+
+    geom_line(data = fortify(fit), aes(x = SPY, y = .fitted), color = 'red')+
     geom_text(x = -0.02, y = 0.02, label = fit_label, parse = TRUE, color = 'red')+
     labs(
-      x='Portfolio return',
-      y='SP500 return',
-      title='Linear Regression of highest Sharpe ratio portfolio and SP500 return'
+      x='SP500 return',
+      y='Portfolio return',
+      title='Linear Regression of SP500 return and highest Sharpe ratio portfolio'
     )
   return(p1)
 }
