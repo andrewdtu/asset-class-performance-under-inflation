@@ -288,3 +288,15 @@ weights <- max.return.risk[[4]][[1]]
 portfolio_linreg(portfolios, period1,period1spx)%>%
   colSums()
 ```
+```{r debug5}
+portfolios2<-portfolio_generator(period2,1000)
+max.return.risk <- portfolios[(portfolios$`returns/sd` == max(portfolios$`returns/sd`)),]
+weights <- max.return.risk[[4]][[1]]
+#totalr(period2)%>%
+ # mutate(weighted_return =total_returns*weights)
+#totalr(period2spx)
+
+
+portfolio_linreg(portfolios2, period2,period2spx)%>%
+  colSums()
+```
