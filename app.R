@@ -14,6 +14,7 @@ require(shiny)
 require(tsibble)
 require(tsibbledata)
 require(lubridate)
+require(ggthemes)
 rm(list=ls())
 
 #Initial read in of data
@@ -76,7 +77,8 @@ time.series <- function(data,time = "Daily") {
       x=paste0("Time (",time,")"),
       y="Price scaled proportionately",
       title=paste0(time," Price Trend")
-    )
+    )+
+    scale_color_tableau('Tableau 20')
   return(p1)
 }
 #print(time.series(data = period1, time = "Monthly"))
@@ -98,14 +100,16 @@ barp <- function(data) {
   newdata <- totalr(data)
   p1 <- ggplot(newdata) +
     geom_bar(aes(x = total_returns,
-                 y = reorder(tickers,total_returns)),
+                 y = reorder(tickers,total_returns),
+                 fill = tickers),
              stat = "identity") +
     scale_x_continuous(expand = c(0, 0, 0.1, 0.1)) +
     labs(
       x = "Return",
       y = "Ticker",
       title = "Total Returns"
-    )
+    )+
+    scale_fill_tableau('Tableau 20')
   return(p1)
 }
 #print(barp(period1))
@@ -116,12 +120,13 @@ boxes <- function(data) {
     pivot_longer(tickers, names_to = "Ticker", values_to = "Price")
   
   p1 <- ggplot(longer) +
-    geom_boxplot(aes(x = Price, y = reorder(Ticker,Price,sd))) +
+    geom_boxplot(aes(x = Price, y = reorder(Ticker,Price,sd), fill = Ticker)) +
     labs(
       x = "Prices",
       y = "Ticker",
       title = "Ticker Volatility"
-    )
+    )+
+    scale_fill_tableau('Tableau 20')
   return(p1)
 }
 
