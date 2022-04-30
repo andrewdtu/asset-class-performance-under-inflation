@@ -15,6 +15,7 @@ require(tsibble)
 require(tsibbledata)
 require(lubridate)
 require(ggthemes)
+require(shinythemes)
 rm(list=ls())
 
 #Initial read in of data
@@ -276,23 +277,31 @@ ui <- fluidPage(
                     plotOutput("trendplot"),
                   ),
                   fluidRow(column(4, plotOutput("box")),
-                           column(4, plotOutput('linreg')),
+                           column(3, plotOutput('linreg')),
                            column(4, plotOutput("bar")),
                   ),
                   fluidRow(plotOutput('ports'))
           ),
-         tabPanel("Summary", 
-         p('The effective federal funds rate is one of the most important determinants of the financial market, which is capable of repricing most assets. This phenomenon can cause significant losses to retail investors because most are unaware ways to mitigate this situation.
-To better understand the market under increasing interest rates, our group collected some historical data for analysis. This analysis can help us make informed decisions in these market conditions. We compiled and analyzed different categories and sectors of securities. 
+         tabPanel("Project Summary",
+                  column(12,p(
+           'The effective federal funds rate is one of the most important determinants of the financial market, which is capable of repricing most assets. This phenomenon can cause significant losses to retail investors because most are unaware ways to mitigate this situation.'
+         )),
+                  column(12,p(
+                    'To better understand the market under increasing interest rates, our group collected some historical data for analysis. This analysis can help us make informed decisions in these market conditions. We compiled and analyzed different categories and sectors of securities.'
+                    
+                  )),
+                  column(12,p(
+                    ' 
 Our initial goal is to compare the different returns of the different sectors of the two periods of the interest rate increase. Knowing the highest returning sector is insufficient in building a well-rounded portfolio, as the risk exposure will be unbalanced. Thus, we used a portfolio weight randomizer to achieve our goal.
-')) 
+'
+                  )),
          
        
-#         tabPanel("Tab 3", tableOutput("table")),
+         tabPanel("Returns", tableOutput("table")),
 #         tabPanel("Tab 4", tableOutput("table"))
 #         
        )
-#    )
+    )
    
 )
     
