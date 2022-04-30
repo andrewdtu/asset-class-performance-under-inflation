@@ -9,7 +9,7 @@
 
 
 
-library(tidyverse)
+require(tidyverse)
 require(shiny)
 require(tsibble)
 require(tsibbledata)
@@ -200,9 +200,9 @@ portfolio_linreg <- function(portfolios, market, spx){
   two_returns <- data.frame(market$returns,spx_return)%>%
     na.omit()
   
-  fit <- lm(market.returns~SPY, data=two_returns)
+  fit <- lm(SPY~market.returns, data=two_returns)
   
-  m <- lm(market.returns~SPY, data=two_returns);
+  m <- lm(SPY~market.returns, data=two_returns);
   eq <- substitute(italic(y) == b %.% italic(x)+a*"; "~~italic(r)^2~"="~r2, 
                    list(a = format(unname(coef(m)[1]), digits = 2),
                         b = format(unname(coef(m)[2]), digits = 3),
@@ -212,14 +212,14 @@ portfolio_linreg <- function(portfolios, market, spx){
   fit_label<- as.expression(eq)
   
   #print(two_returns)
-  p1 = ggplot(two_returns, aes(two_returns[[2]],two_returns[[1]]))+
+  p1 = ggplot(two_returns, aes(two_returns[[1]],two_returns[[2]]))+
     geom_point()+
-    geom_line(data = fortify(fit), aes(x = SPY, y = .fitted), color = 'red')+
+    geom_line(data = fortify(fit), aes(x = market.returns, y = .fitted), color = 'red')+
     geom_text(x = -0.02, y = 0.02, label = fit_label, parse = TRUE, color = 'red')+
     labs(
-      x='SP500 return',
-      y='Portfolio return',
-      title='Linear Regression of SP500 return and highest Sharpe ratio portfolio'
+      x='Portfolio return',
+      y='SP500 return',
+      title='Linear Regression of highest Sharpe ratio portfolio and SP500 return'
     )
   return(p1)
 }
@@ -234,6 +234,8 @@ portfolio_linreg <- function(portfolios, market, spx){
 ## User Interface
 
 
+
+
 time.options = c("Daily","Weekly","Monthly")
 sample.options = c(5,10,20,50,100,200,500,1000,5000,10000)
 period.options = c("Period 1","Period 2")
@@ -241,18 +243,62 @@ period.options = c("Period 1","Period 2")
 ui <- fluidPage(
   
   titlePanel("STAT 479 Project Milestone 3"),
-  selectInput("period","Period",period.options),
-  selectInput("time","Trend Type",time.options),
-  selectInput("sample","Number of Portfolios",sample.options),
+  # selectInput("period","Period",period.options),
+  # selectInput("time","Trend Type",time.options),
+  # selectInput("sample","Number of Portfolios",sample.options),
   textOutput("debug"),
-  plotOutput("trendplot"),
-  plotOutput("bar"),
-  plotOutput("box"),
-  plotOutput("ports"),
-  plotOutput('linreg'),
-  
-  
+  # plotOutput("trendplot"),
+  # plotOutput("bar"),
+  # plotOutput("box"),
+  # plotOutput("ports"),
+  # plotOutput('linreg'),
+# 
+#   sidebarLayout(
+#     sidebarPanel( 
+      fluidRow(
+        column(3,
+               selectInput("period","Period",period.options)
+        ),
+        column(3,
+               selectInput("time","Trend Type",time.options)
+        ),
+        column(3,
+               selectInput("sample","Number of Portfolios",sample.options)        
+        ),
+        
+      ),
+      
+
+
+#    mainPanel(
+       tabsetPanel(type = 'tabs',
+         tabPanel("Dashboard",
+                  fluidRow( 
+                    plotOutput("trendplot"),
+                  ),
+                  fluidRow(column(4, plotOutput("box")),
+                           column(4, plotOutput('linreg')),
+                           column(4, plotOutput("bar")),
+                  ),
+                  fluidRow(
+                    plotOutput('ports')
+                  )
+          ),
+         tabPanel("Summary", 
+         p('The effective federal funds rate is one of the most important determinants of the financial market, which is capable of repricing most assets. This phenomenon can cause significant losses to retail investors because most are unaware ways to mitigate this situation.
+To better understand the market under increasing interest rates, our group collected some historical data for analysis. This analysis can help us make informed decisions in these market conditions. We compiled and analyzed different categories and sectors of securities. 
+Our initial goal is to compare the different returns of the different sectors of the two periods of the interest rate increase. Knowing the highest returning sector is insufficient in building a well-rounded portfolio, as the risk exposure will be unbalanced. Thus, we used a portfolio weight randomizer to achieve our goal.
+')) 
+         
+       
+#         tabPanel("Tab 3", tableOutput("table")),
+#         tabPanel("Tab 4", tableOutput("table"))
+#         
+       )
+#    )
+   
 )
+    
 
 server <- function(input,output) {
   dat <- reactive({
@@ -264,6 +310,8 @@ server <- function(input,output) {
   spx_data <- reactive({
     return(if (input$period == "Period 1") period1spx else period2spx)
   })
+  
+  #sector_returns <-
   
   
   output$trendplot <- renderPlot({
@@ -288,6 +336,34 @@ server <- function(input,output) {
   
 }
 
+summary <- 'The effective federal funds rate is one of the most important determinants of the financial market, which is capable of repricing most assets. This phenomenon can cause significant losses to retail investors because most are unaware ways to mitigate this situation.
+To better understand the market under increasing interest rates, our group collected some historical data for analysis. This analysis can help us make informed decisions in these market conditions. We compiled and analyzed different categories and sectors of securities. 
+Our initial goal is to compare the different returns of the different sectors of the two periods of the interest rate increase. Knowing the highest returning sector is insufficient in building a well-rounded portfolio, as the risk exposure will be unbalanced. Thus, we used a portfolio weight randomizer to achieve our goal.
+'
+
+# #portfolio.return for period 1 and period 2
+# # period 1: totalr(data = period1)
+# portfolios<-portfolio_generator(period1,1000)
+# max.return.risk <- portfolios[(portfolios$`returns/sd` == max(portfolios$`returns/sd`)),]
+# weights <- max.return.risk[[4]][[1]]
+# #totalr(period2)%>%
+# # mutate(weighted_return =total_returns*weights)
+# #totalr(period2spx)
+# 
+# 
+# portfolio_linreg(portfolios, period1,period1spx)%>%
+#   colsums()
+# # period 2: totalr(data = period2)
+# portfolios2<-portfolio_generator(period2,1000)
+# max.return.risk <- portfolios[(portfolios$`returns/sd` == max(portfolios$`returns/sd`)),]
+# weights <- max.return.risk[[4]][[1]]
+# #totalr(period2)%>%
+# # mutate(weighted_return =total_returns*weights)
+# #totalr(period2spx)
+# 
+# 
+# portfolio_linreg(portfolios2, period2,period2spx)%>%
+#   colsums()
 
 app <- shinyApp(ui = ui, server = server)
 
