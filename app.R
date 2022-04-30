@@ -242,7 +242,7 @@ portfolio_linreg <- function(portfolios, market, spx){
 
 
 time.options = c("Daily","Weekly","Monthly")
-sample.options = c(5,10,20,50,100,200,500,1000,5000,10000)
+sample.options = c(200,1000,5000,10000)
 period.options = c("Period 1","Period 2")
 
 ui <- fluidPage(
@@ -261,15 +261,9 @@ ui <- fluidPage(
 #   sidebarLayout(
 #     sidebarPanel( 
       fluidRow(
-        column(3,
-               selectInput("period","Period",period.options)
-        ),
-        column(3,
-               selectInput("time","Trend Type",time.options)
-        ),
-        column(3,
-               selectInput("sample","Number of Portfolios",sample.options)        
-        ),
+        column(4,selectInput("period","Period",period.options)),
+        column(4,selectInput("time","Trend Type",time.options)),
+        column(4,selectInput("sample","Number of Portfolios",sample.options)),
         
       ),
       
@@ -285,9 +279,7 @@ ui <- fluidPage(
                            column(4, plotOutput('linreg')),
                            column(4, plotOutput("bar")),
                   ),
-                  fluidRow(
-                    plotOutput('ports')
-                  )
+                  fluidRow(plotOutput('ports'))
           ),
          tabPanel("Summary", 
          p('The effective federal funds rate is one of the most important determinants of the financial market, which is capable of repricing most assets. This phenomenon can cause significant losses to retail investors because most are unaware ways to mitigate this situation.
