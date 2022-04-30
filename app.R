@@ -47,9 +47,10 @@ period1 <- read_stock_data('stock_period1.csv')
 period2 <- read_stock_data('stock_period2.csv')
 period1spx <- read_spx_data('stock_period1.csv')
 period2spx <- read_spx_data('stock_period2.csv')
-
 tickers <- colnames(period1)
 
+return_text <- scan('returns.txt', character(), sep = '\n')
+summary_text <- scan('summary.txt', character(), sep = '\n')
 
 #Creates a time series ggplot.
 #The ifs determine whether the trend is daily, weekly, or monthly
@@ -283,27 +284,29 @@ ui <- fluidPage(
                   fluidRow(plotOutput('ports'))
           ),
          tabPanel("Project Summary",
-                  column(12,p(
-           'The effective federal funds rate is one of the most important determinants of the financial market, which is capable of repricing most assets. This phenomenon can cause significant losses to retail investors because most are unaware ways to mitigate this situation.'
-         )),
-                  column(12,p(
-                    'To better understand the market under increasing interest rates, our group collected some historical data for analysis. This analysis can help us make informed decisions in these market conditions. We compiled and analyzed different categories and sectors of securities.'
-                    
-                  )),
-                  column(12,p(
-                    ' 
-Our initial goal is to compare the different returns of the different sectors of the two periods of the interest rate increase. Knowing the highest returning sector is insufficient in building a well-rounded portfolio, as the risk exposure will be unbalanced. Thus, we used a portfolio weight randomizer to achieve our goal.
-'
-                  )),
+                  column(12,p(summary_text[1])),
+                  column(12,p(summary_text[2])),
+                  column(12,p(summary_text[3])),
+         ),
          
        
-         tabPanel("Returns", tableOutput("table")),
-#         tabPanel("Tab 4", tableOutput("table"))
+         tabPanel("Returns",
+                  column(12,p(return_text[1])),
+                  column(12,p(return_text[2])),
+                  column(12,p(return_text[3])),
+                  # column(12,p(
+                  #   'Here are two major reasons for the difference. The first reason is that XLE (Energy Select Sector) had a strong performance in the first period but the bad performance in the second period. We usually think the energy sector can have good performance during the inflation, but during President Donald Trump's term, he increases the oil production in the US. Thus, the energy price was relatively low during the second period, which leads the XLE performance bad. Since we have a negative return sector in the second period, our portfolio cannot perform well as the first one.'
+                  # )),
+                  # column(12,p(
+                  #   'Here is another interesting finding, the return of XLK (Technology Select Sector) in period 2 is much better than the return in period 1. The major reason should be President Donald Trump's economic policy, which gives more incentives to the technology companies. We tend to invest similarly to the first period for this inflation period because the energy policy is much different from the second period. After reducing oil production, the energy price has been much higher than before. We can get a good return by investing in the energy sector.'
+                  # ))
+          )
+# #         tabPanel("Tab 4", tableOutput("table"))
 #         
        )
     )
    
-)
+
     
 
 server <- function(input,output) {
@@ -339,13 +342,15 @@ server <- function(input,output) {
   output$debug <- renderText({
     paste0()
   })
+
   
 }
 
-summary <- 'The effective federal funds rate is one of the most important determinants of the financial market, which is capable of repricing most assets. This phenomenon can cause significant losses to retail investors because most are unaware ways to mitigate this situation.
-To better understand the market under increasing interest rates, our group collected some historical data for analysis. This analysis can help us make informed decisions in these market conditions. We compiled and analyzed different categories and sectors of securities. 
-Our initial goal is to compare the different returns of the different sectors of the two periods of the interest rate increase. Knowing the highest returning sector is insufficient in building a well-rounded portfolio, as the risk exposure will be unbalanced. Thus, we used a portfolio weight randomizer to achieve our goal.
-'
+
+# summary <- 'The effective federal funds rate is one of the most important determinants of the financial market, which is capable of repricing most assets. This phenomenon can cause significant losses to retail investors because most are unaware ways to mitigate this situation.
+# To better understand the market under increasing interest rates, our group collected some historical data for analysis. This analysis can help us make informed decisions in these market conditions. We compiled and analyzed different categories and sectors of securities. 
+# Our initial goal is to compare the different returns of the different sectors of the two periods of the interest rate increase. Knowing the highest returning sector is insufficient in building a well-rounded portfolio, as the risk exposure will be unbalanced. Thus, we used a portfolio weight randomizer to achieve our goal.
+# '
 
 # #portfolio.return for period 1 and period 2
 # # period 1: totalr(data = period1)
