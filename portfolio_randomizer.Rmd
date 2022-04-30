@@ -9,7 +9,7 @@ output: pdf_document
 library(tidyverse)
 
 
-shiny::runGitHub('stat479group3', 'andrewdtu')
+#shiny::runGitHub('stat479group3', 'andrewdtu')
 ```
 
 
