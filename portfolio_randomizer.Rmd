@@ -274,7 +274,7 @@ portfolio_linreg <- function(portfolios, market, spx){
     )
   return(two_returns)
 }
-portfolio_linreg(portfolios,period1, period1spx)
+#portfolio_linreg(portfolios,period1, period1spx)
 ```
 ```{r debug4}
 portfolios<-portfolio_generator(period1,1000)
@@ -306,4 +306,29 @@ return_text <- scan('returns.txt', character(), sep = '\n')
 print(return_text)
 summary_text <- scan('summary.txt', character(), sep = '\n')
 print(summary_text)
+```
+
+```{r debug7}
+period1 <- read_stock_data('stock_period1.csv')
+period2 <- read_stock_data('stock_period2.csv')
+period1spx <- read_spx_data('stock_period1.csv')
+period2spx <- read_spx_data('stock_period2.csv')
+tickers <- colnames(period1)
+sectors <-read_csv('ticker_to_sector.csv')
+```
+
+```{r debug8}
+library(magrittr)
+read_stock_data <- function(filename){
+  main_data <- read_csv(filename)
+  
+  colnames(main_data)[1] <- 'col1'
+  stock_data <- main_data%>%
+    column_to_rownames('col1')%>%
+    select(-'SPY')%>%
+    mutate_all(scale, center = FALSE, scale = FALSE)%>%
+    setNames(sectors$sector)
+  return(stock_data)
+}
+period1 <- read_stock_data('stock_period1.csv')
 ```

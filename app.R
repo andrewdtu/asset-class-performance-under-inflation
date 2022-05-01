@@ -16,6 +16,7 @@ require(tsibbledata)
 require(lubridate)
 require(ggthemes)
 require(shinythemes)
+require(magrittr)
 rm(list=ls())
 
 #Initial read in of data
@@ -26,7 +27,9 @@ read_stock_data <- function(filename){
   stock_data <- main_data%>%
     column_to_rownames('col1')%>%
     select(-'SPY')%>%
-    mutate_all(scale, center = FALSE, scale = FALSE)
+    mutate_all(scale, center = FALSE, scale = FALSE)%>%
+    setNames(sectors$sector)
+  
   return(stock_data)
 }
 
@@ -37,11 +40,13 @@ read_spx_data <- function(filename){
   spx_data <- main_data%>%
     column_to_rownames('col1')%>%
     select('SPY')%>%
+      
     mutate_all(scale, center = FALSE, scale = FALSE)
   
   return(spx_data)
 }
 
+sectors <-read_csv('ticker_to_sector.csv')
 
 period1 <- read_stock_data('stock_period1.csv')
 period2 <- read_stock_data('stock_period2.csv')
@@ -80,7 +85,9 @@ time.series <- function(data,time = "Daily") {
       y="Price scaled proportionately",
       title=paste0(time," Price Trend")
     )+
-    scale_color_tableau('Tableau 20')
+    scale_color_tableau('Tableau 20')+
+    theme(legend.position="bottom")+
+    guides(colour = guide_legend(nrow = 2,override.aes = list(size = 10)))
   return(p1)
 }
 #print(time.series(data = period1, time = "Monthly"))
@@ -104,7 +111,8 @@ barp <- function(data) {
     geom_bar(aes(x = total_returns,
                  y = reorder(tickers,total_returns),
                  fill = tickers),
-             stat = "identity") +
+             stat = "identity",
+             show.legend = FALSE) +
     scale_x_continuous(expand = c(0, 0, 0.1, 0.1)) +
     labs(
       x = "Return",
@@ -121,13 +129,14 @@ boxes <- function(data) {
   longer <- data %>%
     pivot_longer(tickers, names_to = "Ticker", values_to = "Price")
   
-  p1 <- ggplot(longer) +
-    geom_boxplot(aes(x = Price, y = reorder(Ticker,Price,sd), fill = Ticker)) +
+  p1 <- ggplot(longer,) +
+    geom_boxplot(aes(x = Price, y = reorder(Ticker,Price,sd), fill = Ticker),show.legend = FALSE) +
     labs(
       x = "Prices",
       y = "Ticker",
       title = "Ticker Volatility"
     )+
+    #xlim(0,100)
     scale_fill_tableau('Tableau 20')
   return(p1)
 }
@@ -204,7 +213,7 @@ portfolio_linreg <- function(portfolios, market, spx){
   spx_return <- lead(spx,1)/spx-1
   #print(max.return.risk)
   market$returns <- as.matrix(return_data) %*% weights
-  two_returns <- data.frame(market$returns,spx_return)%>%
+  two_returns <- data.frame(market$returns,spx_return) %>%
     na.omit()
   
   fit <- lm(SPY~market.returns, data=two_returns)
@@ -265,7 +274,9 @@ ui <- fluidPage(
       fluidRow(
         column(4,selectInput("period","Period",period.options)),
         column(4,selectInput("time","Trend Type",time.options)),
-        column(4,selectInput("sample","Number of Portfolios",sample.options)),
+        column(4,numericInput("sample", label = 'Number of Portfolios', value = 500)),
+        
+        
         
       ),
       
@@ -278,7 +289,7 @@ ui <- fluidPage(
                     plotOutput("trendplot"),
                   ),
                   fluidRow(column(4, plotOutput("box")),
-                           column(3, plotOutput('linreg')),
+                           column(4, plotOutput('linreg')),
                            column(4, plotOutput("bar")),
                   ),
                   fluidRow(plotOutput('ports'))
@@ -294,12 +305,7 @@ ui <- fluidPage(
                   column(12,p(return_text[1])),
                   column(12,p(return_text[2])),
                   column(12,p(return_text[3])),
-                  # column(12,p(
-                  #   'Here are two major reasons for the difference. The first reason is that XLE (Energy Select Sector) had a strong performance in the first period but the bad performance in the second period. We usually think the energy sector can have good performance during the inflation, but during President Donald Trump's term, he increases the oil production in the US. Thus, the energy price was relatively low during the second period, which leads the XLE performance bad. Since we have a negative return sector in the second period, our portfolio cannot perform well as the first one.'
-                  # )),
-                  # column(12,p(
-                  #   'Here is another interesting finding, the return of XLK (Technology Select Sector) in period 2 is much better than the return in period 1. The major reason should be President Donald Trump's economic policy, which gives more incentives to the technology companies. We tend to invest similarly to the first period for this inflation period because the energy policy is much different from the second period. After reducing oil production, the energy price has been much higher than before. We can get a good return by investing in the energy sector.'
-                  # ))
+
           )
 # #         tabPanel("Tab 4", tableOutput("table"))
 #         
@@ -347,10 +353,6 @@ server <- function(input,output) {
 }
 
 
-# summary <- 'The effective federal funds rate is one of the most important determinants of the financial market, which is capable of repricing most assets. This phenomenon can cause significant losses to retail investors because most are unaware ways to mitigate this situation.
-# To better understand the market under increasing interest rates, our group collected some historical data for analysis. This analysis can help us make informed decisions in these market conditions. We compiled and analyzed different categories and sectors of securities. 
-# Our initial goal is to compare the different returns of the different sectors of the two periods of the interest rate increase. Knowing the highest returning sector is insufficient in building a well-rounded portfolio, as the risk exposure will be unbalanced. Thus, we used a portfolio weight randomizer to achieve our goal.
-# '
 
 # #portfolio.return for period 1 and period 2
 # # period 1: totalr(data = period1)
