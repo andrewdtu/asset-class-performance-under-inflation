@@ -353,45 +353,31 @@ subtract_effr <- function(df){
 
 ## User Interface
 
-
-
-
+#options lists for interactions
 time.options = c("Daily","Weekly","Monthly")
 sample.options = c(200,1000,5000,10000)
 period.options = c('2005-2007 (Period 1)' = "Period 1",'2016-2019 (Period 2)' = "Period 2")
 
 ui <- fluidPage(
-  #shinythemes::themeSelector(),
+
   theme = shinytheme(theme_str),
   
   
   titlePanel("Analysis of Increasing Interst Rate Markets"),
-  # selectInput("period","Period",period.options),
-  # selectInput("time","Trend Type",time.options),
-  # selectInput("sample","Number of Portfolios",sample.options),
-#  textOutput('debug'),
-  # plotOutput("trendplot"),
-  # plotOutput("bar"),
-  # plotOutput("box"),
-  # plotOutput("ports"),
-  # plotOutput('linreg'),
-# 
-#   sidebarLayout(
-#     sidebarPanel( 
-      fluidRow(
-        column(4,radioButtons("period", label = "Time Period Selection", choices = period.options, selected = 'Period 1')),
-        #column(4,selectInput("period","Period",period.options)),
-        column(4,selectInput("time","Trend Type",time.options)),
-        column(4,numericInput("sample", label = 'Number of Portfolios', value = 100)),
-        #column(1,materialSwitch(inputId = "themeToggle", label = "Dark Mode", status = "success"))
-        
-        
-        
+  #modalDialog('Info', p('testtext')),
+   
+     fluidRow( 
+      column(3,radioButtons("period", label = "Time Period Selection", choices = period.options, selected = 'Period 1')),
+
+      column(4,selectInput("time","Trend Type",time.options)),
+      column(4,numericInput("sample", label = 'Number of Portfolios', value = 100)),
+      column(1,actionButton("show",'Help!'))
+      #column(1,materialSwitch(inputId = "themeToggle", label = "Dark Mode", status = "success"))
       ),
       
 
 
-#    mainPanel(
+    
        tabsetPanel(type = 'tabs',
          tabPanel("Dashboard",
                   fluidRow( 
@@ -399,13 +385,10 @@ ui <- fluidPage(
                   ),
                   fluidRow(column(6, plotOutput("bar")),
                            column(6, plotOutput("box")),
-                           
-                           
-                  ),
-                  #fluidRow(plotlyOutput('ports')),
-#                  fluidRow(column(3,tableOutput('portreturns'))),
-                  
+                  )
           ),
+         
+         
          tabPanel("Project Summary",
                   
                   column(12, plotOutput('effr')),
@@ -420,16 +403,16 @@ ui <- fluidPage(
                   fluidRow(column(6, plotOutput('linreg')),
                     fluidRow(column(6,p(return_text[1])),
                     column(6,p(return_text[2])),
-                    column(6,p(return_text[3])))),
-                  
+                      )
+                    ),
           )
          # tabPanel("Tab 4", 
          #          tableOutput("table")
-         #  )
+           
 #         
        )
-    )
-   
+    
+) 
 
     
 
@@ -465,10 +448,22 @@ server <- function(input,output) {
   output$effr <- renderPlot({
     plot_effr(effr)
   })
-
-  output$debug <- renderText({
-    paste0(theme_val())
+  observeEvent(input$show, {
+    showModal(modalDialog(
+      title = "Info",
+      "The radiobuttons allow selection of time period for analysis, the trend 
+      options in the middle dictate how smooth the line charts for price are and 
+      the number input to the right control how many portfolios are generated.
+      
+      The 1st tab shows information of the various sector ETFs we've chosen, the 
+      second tab shows the EFFR, and the third tab is our portfolio generator.
+      "
+    ))
   })
+
+  # output$debug <- renderText({
+  #   paste0(theme_val())
+  # })
 
   
 }
