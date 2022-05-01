@@ -331,4 +331,49 @@ read_stock_data <- function(filename){
   return(stock_data)
 }
 period1 <- read_stock_data('stock_period1.csv')
+
+```
+
+
+```{r debug9}
+# portfolio_returns <- function(portfolios, market, spx){
+#   max.return.risk <- portfolios[(portfolios$`returns/sd` == max(portfolios$`returns/sd`)),]
+#   min.risk <- portfolios[(portfolios$sd == min(portfolios$sd)),]
+#   max_weights <- max.return.risk[[4]][[1]]
+#   min_weights <- min.risk[[4]][[1]]
+#   
+#   return_data <- lead(market,1)/market-1
+#   spx_return <- lead(spx,1)/spx-1
+#   #print(max.return.risk)
+#   market$max <- as.matrix(return_data) %*% max_weights
+#   market$min <- as.matrix(return_data) %*% min_weights
+#   two_returns <- data.frame(market$max,market$min,spx_return)%>%
+#     na.omit()%>%
+#     rename(`Max Sharpe` = market.max)%>%
+#     rename(`Min risk` = market.min)%>%
+#     rename(`SP500` = SPY)%>%
+#     colSums()%>%
+#     data.frame()%>%
+#     rename(Return = 1)
+#   
+#   return(two_returns)
+# }
+spy_returns <- function(spx){
+
+  
+  
+  spx_return <- lead(spx,1)/spx-1
+  
+  spx_sd <- sd(na.omit(as.double(rowSums(spx_return))))/length(spx_return[[1]])
+  spx_perf<-data.frame(spx_sd,spx_return)%>%
+    na.omit%>%
+    rename(`sd` = spx_sd)%>%
+    rename(`return` = SPY)%>%
+    colSums()
+
+  
+  return(spx_perf)
+}
+spy_returns(period2spx)
+
 ```

@@ -17,6 +17,7 @@ require(lubridate)
 require(ggthemes)
 require(shinythemes)
 require(magrittr)
+require(ggrepel)
 rm(list=ls())
 
 #Initial read in of data
@@ -87,7 +88,7 @@ time.series <- function(data,time = "Daily") {
     )+
     scale_color_tableau('Tableau 20')+
     theme(legend.position="bottom")+
-    guides(colour = guide_legend(nrow = 2,override.aes = list(size = 10)))
+    guides(colour = guide_legend(nrow = 2,override.aes = list(size = 8)))
   return(p1)
 }
 #print(time.series(data = period1, time = "Monthly"))
@@ -127,12 +128,13 @@ barp <- function(data) {
 #Generates a boxplot of prices for each ticker
 boxes <- function(data) {
   longer <- data %>%
+    mutate_all(scale, center = FALSE, scale = TRUE)%>%
     pivot_longer(tickers, names_to = "Ticker", values_to = "Price")
   
   p1 <- ggplot(longer,) +
-    geom_boxplot(aes(x = Price, y = reorder(Ticker,Price,sd), fill = Ticker),show.legend = FALSE) +
+    geom_violin(aes(x = Price, y = reorder(Ticker,Price,sd), fill = Ticker),show.legend = FALSE) +
     labs(
-      x = "Prices",
+      x = "Normalized Price",
       y = "Ticker",
       title = "Ticker Volatility"
     )+
@@ -174,18 +176,39 @@ portfolio_generator <- function(data,num_of_portfolios) {
   portfolio$weights <- weights_array
   return(portfolio)
 }
+
+spy_returns <- function(spx){
+  
+  
+  
+  spx_return <- lead(spx,1)/spx-1
+  spx_sd <- sd(na.omit(as.double(rowSums(spx))))
+  spx_perf<-data.frame(spx_sd,spx_return)%>%
+    na.omit%>%
+    rename(`sd` = spx_sd)%>%
+    rename(`return` = SPY)%>%
+    colSums()%>%
+    data.frame()
+  
+  
+  return(spx_perf)
+}
 #print(portfolio_generator(period1,10))
 
 #Identifies observations with min risk and max return/risk
 #Then it gives a ggplot of the portfolio
-frontier <- function(data) {
+frontier <- function(data,spx) {
   min.risk <- data[(data$sd == min(data$sd)),]
   max.return.risk <- data[(data$`returns/sd` == max(data$`returns/sd`)),]
+  spx_data<- spy_returns(spx)
   p1 <- ggplot(data) +
     geom_point(aes(x=sd,y=returns),pch=19) +
     geom_point(data = min.risk,aes(x=sd,y=returns), col = "red",pch=17,cex=3) +
     geom_point(data = max.return.risk,aes(x=sd,y=returns),
                col="blue",pch=15,cex=3) +
+    geom_point(aes(x=spx_data[1],y=spx_data[2]),col = 'orange', pch = 16,cex=3)+
+    geom_label_repel(data = min.risk,aes(x=sd,y=returns), label = 'min risk')+
+    geom_label_repel(data = max.return.risk,aes(x=sd,y=returns), label = 'max Sharpe ratio')+
     labs(
       x="Portfolio Standard Deviation",
       y="Portfolio Returns",
@@ -240,7 +263,44 @@ portfolio_linreg <- function(portfolios, market, spx){
   return(p1)
 }
 
-
+spy_returns <- function(spx){
+  
+  
+  
+  spx_return <- lead(spx,1)/spx-1
+  
+  spx_sd <- sd(na.omit(as.double(rowSums(spx_return))))/length(spx_return[[1]])
+  spx_perf<-data.frame(spx_sd,spx_return)%>%
+    na.omit%>%
+    rename(`sd` = spx_sd)%>%
+    rename(`return` = SPY)%>%
+    colSums()
+  
+  
+  return(spx_perf)
+}
+# portfolio_returns <- function(portfolios, market, spx){
+#   max.return.risk <- portfolios[(portfolios$`returns/sd` == max(portfolios$`returns/sd`)),]
+#   min.risk <- portfolios[(portfolios$sd == min(portfolios$sd)),]
+#   max_weights <- max.return.risk[[4]][[1]]
+#   min_weights <- min.risk[[4]][[1]]
+#   
+#   return_data <- lead(market,1)/market-1
+#   spx_return <- lead(spx,1)/spx-1
+#   #print(max.return.risk)
+#   market$max <- as.matrix(return_data) %*% max_weights
+#   market$min <- as.matrix(return_data) %*% min_weights
+#   two_returns <- data.frame(market$max,market$min,spx_return)%>%
+#     na.omit()%>%
+#     rename(`Max Sharpe` = market.max)%>%
+#     rename(`Min risk` = market.min)%>%
+#     rename(`SP500` = SPY)%>%
+#     colSums()%>%
+#     data.frame()%>%
+#     rename(Return = 1)
+#   
+#   return(two_returns)
+# }
 
 
 
@@ -254,7 +314,7 @@ portfolio_linreg <- function(portfolios, market, spx){
 
 time.options = c("Daily","Weekly","Monthly")
 sample.options = c(200,1000,5000,10000)
-period.options = c("Period 1","Period 2")
+period.options = c('2005-2008 (Period 1)' = "Period 1",'2017-2020 (Period 2)' = "Period 2")
 
 ui <- fluidPage(
   
@@ -272,7 +332,8 @@ ui <- fluidPage(
 #   sidebarLayout(
 #     sidebarPanel( 
       fluidRow(
-        column(4,selectInput("period","Period",period.options)),
+        column(4,radioButtons("period", label = "Time Period Selection", choices = period.options, selected = 'Period 1')),
+        #column(4,selectInput("period","Period",period.options)),
         column(4,selectInput("time","Trend Type",time.options)),
         column(4,numericInput("sample", label = 'Number of Portfolios', value = 500)),
         
@@ -292,7 +353,9 @@ ui <- fluidPage(
                            column(4, plotOutput('linreg')),
                            column(4, plotOutput("bar")),
                   ),
-                  fluidRow(plotOutput('ports'))
+                  fluidRow(plotOutput('ports')),
+#                  fluidRow(column(3,tableOutput('portreturns'))),
+                  
           ),
          tabPanel("Project Summary",
                   column(12,p(summary_text[1])),
@@ -302,12 +365,15 @@ ui <- fluidPage(
          
        
          tabPanel("Returns",
+                  
                   column(12,p(return_text[1])),
                   column(12,p(return_text[2])),
                   column(12,p(return_text[3])),
 
           )
-# #         tabPanel("Tab 4", tableOutput("table"))
+         # tabPanel("Tab 4", 
+         #          tableOutput("table")
+         #  )
 #         
        )
     )
@@ -340,11 +406,15 @@ server <- function(input,output) {
   output$box <- renderPlot(boxes(dat()))
   
   output$ports <- renderPlot({
-    frontier(portfolios())
+    frontier(portfolios(),spx_data())
   })
   output$linreg <- renderPlot({
     portfolio_linreg(portfolios(),dat(),spx_data())
   })
+  
+  # output$portreturns <- renderTable({
+  #   portfolio_returns(portfolios(),dat(),spx_data())
+  # }, rownames = TRUE)
   output$debug <- renderText({
     paste0()
   })
@@ -354,29 +424,7 @@ server <- function(input,output) {
 
 
 
-# #portfolio.return for period 1 and period 2
-# # period 1: totalr(data = period1)
-# portfolios<-portfolio_generator(period1,1000)
-# max.return.risk <- portfolios[(portfolios$`returns/sd` == max(portfolios$`returns/sd`)),]
-# weights <- max.return.risk[[4]][[1]]
-# #totalr(period2)%>%
-# # mutate(weighted_return =total_returns*weights)
-# #totalr(period2spx)
-# 
-# 
-# portfolio_linreg(portfolios, period1,period1spx)%>%
-#   colsums()
-# # period 2: totalr(data = period2)
-# portfolios2<-portfolio_generator(period2,1000)
-# max.return.risk <- portfolios[(portfolios$`returns/sd` == max(portfolios$`returns/sd`)),]
-# weights <- max.return.risk[[4]][[1]]
-# #totalr(period2)%>%
-# # mutate(weighted_return =total_returns*weights)
-# #totalr(period2spx)
-# 
-# 
-# portfolio_linreg(portfolios2, period2,period2spx)%>%
-#   colsums()
+
 
 app <- shinyApp(ui = ui, server = server)
 
