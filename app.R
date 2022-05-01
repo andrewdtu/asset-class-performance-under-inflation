@@ -365,7 +365,7 @@ ui <- fluidPage(
   theme = shinytheme(theme_str),
   
   
-  titlePanel("STAT 479 Project Milestone 3"),
+  titlePanel("Analysis of Increasing Interst Rate Markets"),
   # selectInput("period","Period",period.options),
   # selectInput("time","Trend Type",time.options),
   # selectInput("sample","Number of Portfolios",sample.options),
