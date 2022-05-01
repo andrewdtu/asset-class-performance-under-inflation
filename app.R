@@ -18,7 +18,7 @@ p1end = '2006-08-01'
 p2start = '2016-11-01'
 p2end = '2019-01-01'
 
-
+theme_str ='simplex'
 
 #Initial read in of data
 
@@ -229,7 +229,7 @@ frontier <- function(data,spx) {
       title="Portfolio Optimization Based on Efficient Frontier"
     )+
     scale_color_manual(name = "Portfolio",
-                       values = c("Random" = "purple",
+                       values = c("Random" = "black",
                                   "Minimum Risk" = "red",
                                   "Maximum Return/Risk" = "blue",
                                   'SP500' = 'green')
@@ -362,12 +362,14 @@ period.options = c('2005-2008 (Period 1)' = "Period 1",'2016-2019 (Period 2)' = 
 
 ui <- fluidPage(
   #shinythemes::themeSelector(),
-  theme = shinytheme("darkly"),
+  theme = shinytheme(theme_str),
+  
+  
   titlePanel("STAT 479 Project Milestone 3"),
   # selectInput("period","Period",period.options),
   # selectInput("time","Trend Type",time.options),
   # selectInput("sample","Number of Portfolios",sample.options),
-  textOutput("debug"),
+#  textOutput('debug'),
   # plotOutput("trendplot"),
   # plotOutput("bar"),
   # plotOutput("box"),
@@ -380,8 +382,8 @@ ui <- fluidPage(
         column(4,radioButtons("period", label = "Time Period Selection", choices = period.options, selected = 'Period 1')),
         #column(4,selectInput("period","Period",period.options)),
         column(4,selectInput("time","Trend Type",time.options)),
-        column(3,numericInput("sample", label = 'Number of Portfolios', value = 100)),
-        column(1,materialSwitch(inputId = "theme", label = "Dark Mode", status = "default"))
+        column(4,numericInput("sample", label = 'Number of Portfolios', value = 100)),
+        #column(1,materialSwitch(inputId = "themeToggle", label = "Dark Mode", status = "success"))
         
         
         
@@ -441,8 +443,7 @@ server <- function(input,output) {
   spx_data <- reactive({
     return(if (input$period == "Period 1") period1spx else period2spx)
   })
-  
-  #sector_returns <-
+
   
   
   output$trendplot <- renderPlot({
@@ -464,12 +465,9 @@ server <- function(input,output) {
   output$effr <- renderPlot({
     plot_effr(effr)
   })
-  
-  # output$portreturns <- renderTable({
-  #   portfolio_returns(portfolios(),dat(),spx_data())
-  # }, rownames = TRUE)
+
   output$debug <- renderText({
-    paste0()
+    paste0(theme_val())
   })
 
   
