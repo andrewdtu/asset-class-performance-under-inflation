@@ -358,7 +358,7 @@ subtract_effr <- function(df){
 
 time.options = c("Daily","Weekly","Monthly")
 sample.options = c(200,1000,5000,10000)
-period.options = c('2005-2008 (Period 1)' = "Period 1",'2016-2019 (Period 2)' = "Period 2")
+period.options = c('2005-2007 (Period 1)' = "Period 1",'2016-2019 (Period 2)' = "Period 2")
 
 ui <- fluidPage(
   #shinythemes::themeSelector(),
