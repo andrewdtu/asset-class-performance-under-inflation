@@ -54,7 +54,13 @@ period1 <- read_stock_data('stock_period1.csv')
 period2 <- read_stock_data('stock_period2.csv')
 period1spx <- read_spx_data('stock_period1.csv')
 period2spx <- read_spx_data('stock_period2.csv')
+
 tickers <- colnames(period1)
+
+effr <-read_csv('stock.csv')%>%
+  distinct(Date, .keep_all = TRUE)%>%
+  select(Date,EFFR)%>%
+  column_to_rownames(var="Date")
 
 return_text <- scan('returns.txt', character(), sep = '\n')
 summary_text <- scan('summary.txt', character(), sep = '\n')
@@ -109,10 +115,10 @@ totalr <- function(data) {
 #Generates a bar plot for Total returns by ticker
 barp <- function(data) {
   newdata <- totalr(data)
-  meds <- c(by(newdata$total_returns,newdata$tickers, median))
+  #meds <- c(by(newdata$total_returns,newdata$tickers, median))
   p1 <- ggplot(newdata) +
     geom_bar(aes(x = total_returns,
-                 y = reorder(tickers,total_returns),
+                 y = reorder(tickers,tickers),
                  fill = tickers),
              stat = "identity",
              show.legend = FALSE) +
@@ -123,9 +129,7 @@ barp <- function(data) {
       title = "Total Returns"
     )+
    # geom_text(aes(x = meds, y = names(meds), label = tickers))+
-    scale_fill_tableau('Tableau 20')+
-    theme(axis.ticks.y=element_blank(),
-          axis.text.y=element_blank())
+    scale_fill_tableau('Tableau 20')
   return(p1)
 }
 #print(barp(period1))
@@ -137,7 +141,7 @@ boxes <- function(data) {
     pivot_longer(tickers, names_to = "Ticker", values_to = "Price")
   
   p1 <- ggplot(longer,) +
-    geom_violin(aes(x = Price, y = reorder(Ticker,Price,sd), fill = Ticker),show.legend = FALSE) +
+      geom_violin(aes(x = Price, y = reorder(Ticker,Ticker), fill = Ticker),show.legend = FALSE) +
     labs(
       x = "Normalized Price",
       y = "Sector",
@@ -146,7 +150,8 @@ boxes <- function(data) {
     #xlim(0,100)
     scale_fill_tableau('Tableau 20')+
     theme(axis.ticks.y=element_blank(),
-          axis.text.y=element_blank())
+          axis.text.y=element_blank(),
+          axis.title.y = element_blank())
   return(p1)
 }
 
@@ -244,38 +249,7 @@ frontier <- function(data,spx) {
   return(p1)
 }
 
-frontier_2 <- function(data) {
-  min.risk <- data[(data$sd == min(data$sd)),]
-  max.return.risk <- data[(data$`returns/sd` == max(data$`returns/sd`)),]
-  #before, the ggplot was plotting two points in the same spot,
-  #So this removes it for the sake of the plotly
-  base_data <- data[!(data$sd == min(data$sd) | data$`returns/sd` == max(data$`returns/sd`)),]
-  p1 <- ggplot(base_data) +
-    geom_point(aes(x=sd,y=returns, text = info(base_data), color = "Random"),pch=19) +
-    geom_point(data = min.risk,
-               aes(x=sd,y=returns, text = info(min.risk), color = "Minimum Risk"),
-               pch=15,cex=2) +
-    geom_point(data = max.return.risk,
-               aes(x=sd,y=returns, text = info(max.return.risk), color = "Maximum Return/Risk"),
-               pch=18,cex=2) +
-    scale_color_manual(name = "Portfolio",
-                       values = c("Random" = "black",
-                                  "Minimum Risk" = "red",
-                                  "Maximum Return/Risk" = "blue")
-    ) +
-    labs(
-      x="Portfolio Standard Deviation",
-      y="Portfolio Returns",
-      title="Portfolio Optimization Based on Efficient Frontier"
-    )
-  #scale_color_manual(name = "hello", breaks = c("Random Portfolios",
-  #"Minimum Risk Portfolio","Max Sharpe Portfolio"),
-  #values = c("Random Portfolios"="black",
-  #"Minimum Risk Portfolio"="red",
-  #"Max Sharpe Portfolio"="blue"))
-  
-  return(p1)
-}
+
 
 
 # function to plot sp500 return and highest sharpe ratio portfolio return
@@ -284,8 +258,8 @@ portfolio_linreg <- function(portfolios, market, spx){
   weights <- max.return.risk[[4]][[1]]
   
   
-  return_data <- lead(market,1)/market-1
-  spx_return <- lead(spx,1)/spx-1
+  return_data <- subtract_effr(lead(market,1)/market-1)
+  spx_return <- subtract_effr(lead(spx,1)/spx-1)
   #print(max.return.risk)
   market$returns <- as.matrix(return_data) %*% weights
   two_returns <- data.frame(market$returns,spx_return) %>%
@@ -313,6 +287,24 @@ portfolio_linreg <- function(portfolios, market, spx){
       title='Linear Regression of highest Sharpe ratio portfolio and SP500 return'
     )
   return(p1)
+}
+
+plot_effr <- function(effr){
+  effr%>%
+    rownames_to_column('date')%>%
+    mutate(date = date(date))%>%
+    ggplot(aes(x=date,y=EFFR,group = 1))+
+    geom_line()+
+    scale_x_date()+
+    annotate("rect", 
+             xmin = c(date('2004-12-01'),date('2016-11-01')),
+             xmax = c(date('2006-08-01'),date('2019-01-01')),
+             ymin = -Inf, ymax = Inf,alpha = 0.4, fill = c("green", "orange"))+
+    labs(
+      x = "Year",
+      y = "Effective Federal Funds Rate",
+      title = "Period selection"
+    )
 }
 
 spy_returns <- function(spx){
@@ -353,7 +345,15 @@ info <- function(data) {
 }
 
 
-
+subtract_effr <- function(df){
+  df%>% 
+    left_join(x=rownames_to_column(.),y=rownames_to_column(effr), by = 'rowname')%>%
+    mutate(EFFR = EFFR/36500)%>%
+    select(-rowname)%>%
+    mutate_all(`-`,.$EFFR)%>%
+    select(-EFFR)%>%
+    return()
+}
 
 # Shiny:
 
@@ -364,7 +364,7 @@ info <- function(data) {
 
 time.options = c("Daily","Weekly","Monthly")
 sample.options = c(200,1000,5000,10000)
-period.options = c('2005-2008 (Period 1)' = "Period 1",'2017-2020 (Period 2)' = "Period 2")
+period.options = c('2005-2008 (Period 1)' = "Period 1",'2016-2019 (Period 2)' = "Period 2")
 
 ui <- fluidPage(
   
@@ -385,7 +385,7 @@ ui <- fluidPage(
         column(4,radioButtons("period", label = "Time Period Selection", choices = period.options, selected = 'Period 1')),
         #column(4,selectInput("period","Period",period.options)),
         column(4,selectInput("time","Trend Type",time.options)),
-        column(4,numericInput("sample", label = 'Number of Portfolios', value = 500)),
+        column(4,numericInput("sample", label = 'Number of Portfolios', value = 100)),
         
         
         
@@ -399,23 +399,27 @@ ui <- fluidPage(
                   fluidRow( 
                     plotOutput("trendplot"),
                   ),
-                  fluidRow(column(4, plotOutput("box")),
-                           column(4, plotOutput('linreg')),
-                           column(4, plotOutput("bar")),
+                  fluidRow(column(6, plotOutput("bar")),
+                           column(6, plotOutput("box")),
+                           
+                           
                   ),
-                  fluidRow(plotlyOutput('ports')),
+                  #fluidRow(plotlyOutput('ports')),
 #                  fluidRow(column(3,tableOutput('portreturns'))),
                   
           ),
          tabPanel("Project Summary",
+                  
+                  column(12, plotOutput('effr')),
                   column(10,offset = 1,p(summary_text[1])),
                   column(10,offset = 1,p(summary_text[2])),
                   column(10,offset = 1,p(summary_text[3])),
          ),
          
        
-         tabPanel("Returns",
-                  
+         tabPanel("Optimal Portfolio Generator",
+                  column(12,plotlyOutput('ports')),
+                  column(12, plotOutput('linreg')),
                   column(10,offset = 1,p(return_text[1])),
                   column(10,offset = 1,p(return_text[2])),
                   column(10,offset = 1,p(return_text[3])),
@@ -460,6 +464,9 @@ server <- function(input,output) {
   })
   output$linreg <- renderPlot({
     portfolio_linreg(portfolios(),dat(),spx_data())
+  })
+  output$effr <- renderPlot({
+    plot_effr(effr)
   })
   
   # output$portreturns <- renderTable({

@@ -432,5 +432,82 @@ frontier_2 <- function(data) {
   return(p1)
 }
 #frontier_2(portfolios)
-portfolios[[4]]
+#portfolios[[4]]
+```
+```{r debug11}
+effr <-read_csv('stock.csv')%>%
+  distinct(Date, .keep_all = TRUE)%>%
+  select(Date,EFFR)%>%
+  column_to_rownames(var="Date")
+
+portfolio_linreg <- function(portfolios, market, spx){
+  max.return.risk <- portfolios[(portfolios$`returns/sd` == max(portfolios$`returns/sd`)),]
+  weights <- max.return.risk[[4]][[1]]
+  
+  
+  return_data <- lead(market,1)/market-1
+  spx_return <- lead(spx,1)/spx-1
+  #print(max.return.risk)
+  market$returns <- as.matrix(return_data) %*% weights
+  two_returns <- data.frame(market$returns,spx_return)%>%
+    na.omit()
+  
+  fit <- lm(SPY~market.returns, data=two_returns)
+  
+  m <- lm(SPY~market.returns, data=two_returns);
+  eq <- substitute(italic(y) == b %.% italic(x)+a*"; "~~italic(r)^2~"="~r2, 
+                   list(a = format(unname(coef(m)[1]), digits = 2),
+                        b = format(unname(coef(m)[2]), digits = 3),
+                        r2 = format(summary(m)$r.squared, digits = 3)))
+  
+  
+  fit_label<- as.expression(eq)
+  
+  #print(two_returns)
+  p1 = ggplot(two_returns, aes(two_returns[[1]],two_returns[[2]]))+
+    geom_point()+
+    geom_line(data = fortify(fit), aes(x = market.returns, y = .fitted), color = 'red')+
+    geom_text(x = -0.02, y = 0.02, label = fit_label, parse = TRUE, color = 'red')+
+    labs(
+      x='Portfolio return',
+      y='SP500 return',
+      title='Linear Regression of highest Sharpe ratio portfolio and SP500 return'
+    )
+  return(p1)
+}
+
+
+
+#portfolio_linreg(portfolios2, period2,period2spx)
+
+testdf  <-lead(period2,1)/period2-1
+subtract_effr <- function(df){
+  df%>% 
+    na.omit()%>%
+    left_join(x=rownames_to_column(.),y=rownames_to_column(effr), by = 'rowname')%>%
+    mutate(EFFR = EFFR/36500)%>%
+    select(-rowname)%>%
+    mutate_all(`-`,.$EFFR)%>%
+    select(-EFFR)%>%
+    colSums()%>%
+    return()
+}
+plot_effr <- function(effr){
+  effr%>%
+  rownames_to_column('date')%>%
+  mutate(date = date(date))%>%
+ggplot(aes(x=date,y=EFFR,group = 1))+
+  geom_line()+
+  scale_x_date()+
+  annotate("rect", 
+           xmin = c(date('2004-12-01'),date('2016-11-01')),
+           xmax = c(date('2006-08-01'),date('2019-01-01')),
+           ymin = -Inf, ymax = Inf,alpha = 0.4, fill = c("green", "orange"))+
+  labs(
+      x = "Year",
+      y = "Effective Federal Funds Rate",
+      title = "Period selection"
+  )
+}
+plot_effr(effr)
 ```

@@ -1,14 +1,3 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
-
-
-
 require(tidyverse)
 require(shiny)
 require(tsibble)
@@ -19,7 +8,11 @@ require(shinythemes)
 require(plotly)
 rm(list=ls())
 
-#Initial read in of data
+
+
+
+
+#stock read function
 read_stock_data <- function(filename){
   main_data <- read_csv(filename)
   
@@ -30,7 +23,7 @@ read_stock_data <- function(filename){
     mutate_all(scale, center = FALSE, scale = FALSE)
   return(stock_data)
 }
-
+#spx read function
 read_spx_data <- function(filename){
   main_data <- read_csv(filename)
   
@@ -43,13 +36,18 @@ read_spx_data <- function(filename){
   return(spx_data)
 }
 
-
+#Initial read in of data
 period1 <- read_stock_data('stock_period1.csv')
 period2 <- read_stock_data('stock_period2.csv')
 period1spx <- read_spx_data('stock_period1.csv')
 period2spx <- read_spx_data('stock_period2.csv')
 
 tickers <- colnames(period1)
+
+effr <-read_csv('stock.csv')%>%
+  distinct(Date, .keep_all = TRUE)%>%
+  select(Date,EFFR)%>%
+  column_to_rownames(var="Date")
 
 
 #Creates a time series ggplot.
