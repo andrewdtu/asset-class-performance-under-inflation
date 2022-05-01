@@ -18,6 +18,7 @@ require(ggthemes)
 require(shinythemes)
 require(magrittr)
 require(ggrepel)
+require(plotly)
 rm(list=ls())
 
 #Initial read in of data
@@ -108,6 +109,7 @@ totalr <- function(data) {
 #Generates a bar plot for Total returns by ticker
 barp <- function(data) {
   newdata <- totalr(data)
+  meds <- c(by(newdata$total_returns,newdata$tickers, median))
   p1 <- ggplot(newdata) +
     geom_bar(aes(x = total_returns,
                  y = reorder(tickers,total_returns),
@@ -117,10 +119,13 @@ barp <- function(data) {
     scale_x_continuous(expand = c(0, 0, 0.1, 0.1)) +
     labs(
       x = "Return",
-      y = "Ticker",
+      y = "Sector",
       title = "Total Returns"
     )+
-    scale_fill_tableau('Tableau 20')
+   # geom_text(aes(x = meds, y = names(meds), label = tickers))+
+    scale_fill_tableau('Tableau 20')+
+    theme(axis.ticks.y=element_blank(),
+          axis.text.y=element_blank())
   return(p1)
 }
 #print(barp(period1))
@@ -135,11 +140,13 @@ boxes <- function(data) {
     geom_violin(aes(x = Price, y = reorder(Ticker,Price,sd), fill = Ticker),show.legend = FALSE) +
     labs(
       x = "Normalized Price",
-      y = "Ticker",
-      title = "Ticker Volatility"
+      y = "Sector",
+      title = "Sector Volatility"
     )+
     #xlim(0,100)
-    scale_fill_tableau('Tableau 20')
+    scale_fill_tableau('Tableau 20')+
+    theme(axis.ticks.y=element_blank(),
+          axis.text.y=element_blank())
   return(p1)
 }
 
@@ -149,11 +156,39 @@ boxes <- function(data) {
 #print(boxes(period1))
 
 #Generates portfolios
+# portfolio_generator <- function(data,num_of_portfolios) {
+#   portfolio = data.frame()
+#   portfolio$returns <- double()
+#   portfolio$sd <- double()
+#   portfolio$`returns/sd` <- double()
+#   
+#   
+#   weights_array = list()
+#   
+#   total_returns = as.double(((tail(data,1)-head(data,1))/head(data,1))[1,])
+#   num_of_stocks = ncol(data)
+#   stock_returns = lead(data,1)/data-1
+#   
+#   for (i in 1:num_of_portfolios){
+#     rnd_nums = runif(ncol(data))
+#     weights = rnd_nums/sum(rnd_nums)
+#     
+#     weights_array <- append(weights_array,list(weights))
+#     portfolio[i,1] <- sum(total_returns*weights)
+#     portfolio_returns <- stock_returns*t(weights)
+#     portfolio[i,2] <- sd(na.omit(as.double(rowSums(portfolio_returns))))
+#     portfolio[i,3] <- as.double(portfolio[i,1])/as.double(portfolio[i,2])
+#     
+#   }
+#   portfolio$weights <- weights_array
+#   return(portfolio)
+# }
 portfolio_generator <- function(data,num_of_portfolios) {
   portfolio = data.frame()
   portfolio$returns <- double()
   portfolio$sd <- double()
   portfolio$`returns/sd` <- double()
+  portfolio$weights <- list()
   
   
   weights_array = list()
@@ -171,12 +206,14 @@ portfolio_generator <- function(data,num_of_portfolios) {
     portfolio_returns <- stock_returns*t(weights)
     portfolio[i,2] <- sd(na.omit(as.double(rowSums(portfolio_returns))))
     portfolio[i,3] <- as.double(portfolio[i,1])/as.double(portfolio[i,2])
-    
+    for (j in 1:length(tickers)) {
+      portfolio[i,j+4] <- weights[j]
+    }
   }
-  portfolio$weights <- weights_array
+  portfolio$weights <- weights_array #all weights
+  names(portfolio)[(1:length(tickers))+4] <- tickers #individual weights
   return(portfolio)
 }
-
 spy_returns <- function(spx){
   
   
@@ -198,19 +235,63 @@ spy_returns <- function(spx){
 #Identifies observations with min risk and max return/risk
 #Then it gives a ggplot of the portfolio
 frontier <- function(data,spx) {
+
+  spx_data<- spy_returns(spx)
+  
   min.risk <- data[(data$sd == min(data$sd)),]
   max.return.risk <- data[(data$`returns/sd` == max(data$`returns/sd`)),]
-  spx_data<- spy_returns(spx)
-  p1 <- ggplot(data) +
-    geom_point(aes(x=sd,y=returns),pch=19) +
-    geom_point(data = min.risk,aes(x=sd,y=returns), col = "red",pch=17,cex=3) +
-    geom_point(data = max.return.risk,aes(x=sd,y=returns),
-               col="blue",pch=15,cex=3) +
-    geom_point(data = spx_data,aes(x=spx_data$sd,y=spx_data$return),col = 'orange', pch = 16,cex=3)+
-    geom_label_repel(data = spx_data,aes(x=spx_data$sd,y=spx_data$return), label = 'SP500')+
-    geom_label_repel(data = max.return.risk,aes(x=sd,y=returns), label = 'max Sharpe ratio')+
-    geom_label_repel(data = min.risk,aes(x=sd,y=returns), label = 'min risk')+
-    #geom_label_repel(data = max.return.risk,aes(x=sd,y=returns), label = 'max Sharpe ratio')+
+  #before, the ggplot was plotting two points in the same spot,
+  #So this removes it for the sake of the plotly
+  base_data <- data[!(data$sd == min(data$sd) | data$`returns/sd` == max(data$`returns/sd`)),]
+  
+  p1 <- ggplot(base_data) +
+    geom_point(aes(x=sd,y=returns,text = info(base_data), color = "Random"),pch=19) +
+    geom_point(data = min.risk,aes(x=sd,y=returns,text = info(min.risk), color = "Minimum Risk"),pch=15,cex=4) +
+    geom_point(data = max.return.risk,aes(x=sd,y=returns,text = info(max.return.risk), color = "Maximum Return/Risk"),pch=18,cex=4) +
+    geom_point(data = spx_data,aes(x=sd,y=return,text = 'SP500',color='SP500'), pch = 16,cex=4)+
+    # geom_label_repel(data = spx_data,aes(x=sd,y=return), label = 'SP500')+
+    # geom_label_repel(data = max.return.risk,aes(x=sd,y=returns), label = 'max Sharpe ratio')+
+    # geom_label_repel(data = min.risk,aes(x=sd,y=returns), label = 'min risk')+
+    
+    labs(
+      x="Portfolio Standard Deviation",
+      y="Portfolio Returns",
+      title="Portfolio Optimization Based on Efficient Frontier"
+    )+
+    scale_color_manual(name = "Portfolio",
+                       values = c("Random" = "black",
+                                  "Minimum Risk" = "red",
+                                  "Maximum Return/Risk" = "blue",
+                                  'SP500' = 'green')
+    ) 
+  #scale_color_manual(name = "hello", breaks = c("Random Portfolios",
+  #"Minimum Risk Portfolio","Max Sharpe Portfolio"),
+  #values = c("Random Portfolios"="black",
+  #"Minimum Risk Portfolio"="red",
+  #"Max Sharpe Portfolio"="blue"))
+  
+  return(p1)
+}
+
+frontier_2 <- function(data) {
+  min.risk <- data[(data$sd == min(data$sd)),]
+  max.return.risk <- data[(data$`returns/sd` == max(data$`returns/sd`)),]
+  #before, the ggplot was plotting two points in the same spot,
+  #So this removes it for the sake of the plotly
+  base_data <- data[!(data$sd == min(data$sd) | data$`returns/sd` == max(data$`returns/sd`)),]
+  p1 <- ggplot(base_data) +
+    geom_point(aes(x=sd,y=returns, text = info(base_data), color = "Random"),pch=19) +
+    geom_point(data = min.risk,
+               aes(x=sd,y=returns, text = info(min.risk), color = "Minimum Risk"),
+               pch=15,cex=2) +
+    geom_point(data = max.return.risk,
+               aes(x=sd,y=returns, text = info(max.return.risk), color = "Maximum Return/Risk"),
+               pch=18,cex=2) +
+    scale_color_manual(name = "Portfolio",
+                       values = c("Random" = "black",
+                                  "Minimum Risk" = "red",
+                                  "Maximum Return/Risk" = "blue")
+    ) +
     labs(
       x="Portfolio Standard Deviation",
       y="Portfolio Returns",
@@ -224,8 +305,6 @@ frontier <- function(data,spx) {
   
   return(p1)
 }
-#print(frontier(portfolio_generator(period1,1000)))
-
 
 
 # function to plot sp500 return and highest sharpe ratio portfolio return
@@ -241,9 +320,9 @@ portfolio_linreg <- function(portfolios, market, spx){
   two_returns <- data.frame(market$returns,spx_return) %>%
     na.omit()
   
-  fit <- lm(SPY~market.returns, data=two_returns)
+  fit <- lm(market.returns~SPY, data=two_returns)
   
-  m <- lm(SPY~market.returns, data=two_returns);
+  m <- lm(market.returns~SPY, data=two_returns);
   eq <- substitute(italic(y) == b %.% italic(x)+a*"; "~~italic(r)^2~"="~r2, 
                    list(a = format(unname(coef(m)[1]), digits = 2),
                         b = format(unname(coef(m)[2]), digits = 3),
@@ -253,13 +332,13 @@ portfolio_linreg <- function(portfolios, market, spx){
   fit_label<- as.expression(eq)
   
   #print(two_returns)
-  p1 = ggplot(two_returns, aes(two_returns[[1]],two_returns[[2]]))+
+  p1 = ggplot(two_returns, aes(two_returns[[2]],two_returns[[1]]))+
     geom_point()+
-    geom_line(data = fortify(fit), aes(x = market.returns, y = .fitted), color = 'red')+
-    geom_text(x = -0.02, y = 0.02, label = fit_label, parse = TRUE, color = 'red')+
+    geom_line(data = fortify(fit), aes(x = SPY, y = .fitted), color = 'red')+
+    geom_text(x = -0.01, y = 0.02, label = fit_label, parse = TRUE, color = 'red')+
     labs(
-      x='Portfolio return',
-      y='SP500 return',
+      x='SP500 return',
+      y='Portfolio return',
       title='Linear Regression of highest Sharpe ratio portfolio and SP500 return'
     )
   return(p1)
@@ -280,28 +359,27 @@ spy_returns <- function(spx){
   
   return(data.frame(t(spx_perf)))
 }
-# portfolio_returns <- function(portfolios, market, spx){
-#   max.return.risk <- portfolios[(portfolios$`returns/sd` == max(portfolios$`returns/sd`)),]
-#   min.risk <- portfolios[(portfolios$sd == min(portfolios$sd)),]
-#   max_weights <- max.return.risk[[4]][[1]]
-#   min_weights <- min.risk[[4]][[1]]
-#   
-#   return_data <- lead(market,1)/market-1
-#   spx_return <- lead(spx,1)/spx-1
-#   #print(max.return.risk)
-#   market$max <- as.matrix(return_data) %*% max_weights
-#   market$min <- as.matrix(return_data) %*% min_weights
-#   two_returns <- data.frame(market$max,market$min,spx_return)%>%
-#     na.omit()%>%
-#     rename(`Max Sharpe` = market.max)%>%
-#     rename(`Min risk` = market.min)%>%
-#     rename(`SP500` = SPY)%>%
-#     colSums()%>%
-#     data.frame()%>%
-#     rename(Return = 1)
-#   
-#   return(two_returns)
-# }
+
+#This function gives the weights for the plotly frontier function
+info <- function(data) {
+  custom_info <- character()
+  for (i in 1:nrow(data)){
+    custom_info[i] = paste0(
+      tickers[1],": ",100*round(data[i,5],3),"%","\n",
+      tickers[2],": ",100*round(data[i,6],3),"%","\n",
+      tickers[3],": ",100*round(data[i,7],3),"%","\n",
+      tickers[4],": ",100*round(data[i,8],3),"%","\n",
+      tickers[5],": ",100*round(data[i,9],3),"%","\n",
+      tickers[6],": ",100*round(data[i,10],3),"%","\n",
+      tickers[7],": ",100*round(data[i,11],3),"%","\n",
+      tickers[8],": ",100*round(data[i,12],3),"%","\n",
+      tickers[9],": ",100*round(data[i,13],3),"%","\n",
+      tickers[10],": ",100*round(data[i,14],3),"%","\n",
+      tickers[11],": ",100*round(data[i,15],3),"%"
+    )
+  }
+  return(custom_info)
+}
 
 
 
@@ -354,7 +432,7 @@ ui <- fluidPage(
                            column(4, plotOutput('linreg')),
                            column(4, plotOutput("bar")),
                   ),
-                  fluidRow(plotOutput('ports')),
+                  fluidRow(plotlyOutput('ports')),
 #                  fluidRow(column(3,tableOutput('portreturns'))),
                   
           ),
@@ -406,8 +484,8 @@ server <- function(input,output) {
   
   output$box <- renderPlot(boxes(dat()))
   
-  output$ports <- renderPlot({
-    frontier(portfolios(),spx_data())
+  output$ports <- renderPlotly({
+    ggplotly(frontier(portfolios(),spx_data()),tooltip = "text")
   })
   output$linreg <- renderPlot({
     portfolio_linreg(portfolios(),dat(),spx_data())

@@ -373,6 +373,64 @@ spy_returns <- function(spx){
   
   return(data.frame(t(spx_perf)))
 }
-spy_returns(period2spx)
+#spy_returns(period2spx)
 
+info <- function(data) {
+  custom_info <- character()
+  for (i in 1:nrow(data)){
+    custom_info[i] = paste0(
+      tickers[1],": ",100*round(data[i,5],3),"%","\n",
+      tickers[2],": ",100*round(data[i,6],3),"%","\n",
+      tickers[3],": ",100*round(data[i,7],3),"%","\n",
+      tickers[4],": ",100*round(data[i,8],3),"%","\n",
+      tickers[5],": ",100*round(data[i,9],3),"%","\n",
+      tickers[6],": ",100*round(data[i,10],3),"%","\n",
+      tickers[7],": ",100*round(data[i,11],3),"%","\n",
+      tickers[8],": ",100*round(data[i,12],3),"%","\n",
+      tickers[9],": ",100*round(data[i,13],3),"%","\n",
+      tickers[10],": ",100*round(data[i,14],3),"%","\n",
+      tickers[11],": ",100*round(data[i,15],3),"%"
+    )
+  }
+  return(custom_info)
+}
+```
+
+
+
+```{r debug10}
+frontier_2 <- function(data) {
+  min.risk <- data[(data$sd == min(data$sd)),]
+  max.return.risk <- data[(data$`returns/sd` == max(data$`returns/sd`)),]
+  #before, the ggplot was plotting two points in the same spot,
+  #So this removes it for the sake of the plotly
+  base_data <- data[!(data$sd == min(data$sd) | data$`returns/sd` == max(data$`returns/sd`)),]
+  p1 <- ggplot(base_data) +
+    geom_point(aes(x=sd,y=returns, text = info(base_data), color = "Random"),pch=19) +
+    geom_point(data = min.risk,
+               aes(x=sd,y=returns, text = info(min.risk), color = "Minimum Risk"),
+               pch=15,cex=2) +
+    geom_point(data = max.return.risk,
+               aes(x=sd,y=returns, text = info(max.return.risk), color = "Maximum Return/Risk"),
+               pch=18,cex=2) +
+    scale_color_manual(name = "Portfolio",
+                       values = c("Random" = "black",
+                                  "Minimum Risk" = "red",
+                                  "Maximum Return/Risk" = "blue")
+    ) +
+    labs(
+      x="Portfolio Standard Deviation",
+      y="Portfolio Returns",
+      title="Portfolio Optimization Based on Efficient Frontier"
+    )
+  #scale_color_manual(name = "hello", breaks = c("Random Portfolios",
+  #"Minimum Risk Portfolio","Max Sharpe Portfolio"),
+  #values = c("Random Portfolios"="black",
+  #"Minimum Risk Portfolio"="red",
+  #"Max Sharpe Portfolio"="blue"))
+  
+  return(p1)
+}
+#frontier_2(portfolios)
+portfolios[[4]]
 ```
