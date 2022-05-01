@@ -457,7 +457,8 @@ server <- function(input,output) {
       
       p("The 1st tab shows information of the various sector ETFs we've chosen, the 
       second tab shows the EFFR, and the third tab is our portfolio generator.
-      ")
+      "),
+      tags$a(href="https://github.com/andrewdtu/stat479group3", "Our GitHub Repo")
     ))
   })
 
