@@ -206,9 +206,11 @@ frontier <- function(data,spx) {
     geom_point(data = min.risk,aes(x=sd,y=returns), col = "red",pch=17,cex=3) +
     geom_point(data = max.return.risk,aes(x=sd,y=returns),
                col="blue",pch=15,cex=3) +
-    geom_point(aes(x=spx_data[1],y=spx_data[2]),col = 'orange', pch = 16,cex=3)+
-    geom_label_repel(data = min.risk,aes(x=sd,y=returns), label = 'min risk')+
+    geom_point(data = spx_data,aes(x=spx_data$sd,y=spx_data$return),col = 'orange', pch = 16,cex=3)+
+    geom_label_repel(data = spx_data,aes(x=spx_data$sd,y=spx_data$return), label = 'SP500')+
     geom_label_repel(data = max.return.risk,aes(x=sd,y=returns), label = 'max Sharpe ratio')+
+    geom_label_repel(data = min.risk,aes(x=sd,y=returns), label = 'min risk')+
+    #geom_label_repel(data = max.return.risk,aes(x=sd,y=returns), label = 'max Sharpe ratio')+
     labs(
       x="Portfolio Standard Deviation",
       y="Portfolio Returns",
@@ -276,8 +278,7 @@ spy_returns <- function(spx){
     rename(`return` = SPY)%>%
     colSums()
   
-  
-  return(spx_perf)
+  return(data.frame(t(spx_perf)))
 }
 # portfolio_returns <- function(portfolios, market, spx){
 #   max.return.risk <- portfolios[(portfolios$`returns/sd` == max(portfolios$`returns/sd`)),]
@@ -358,17 +359,17 @@ ui <- fluidPage(
                   
           ),
          tabPanel("Project Summary",
-                  column(12,p(summary_text[1])),
-                  column(12,p(summary_text[2])),
-                  column(12,p(summary_text[3])),
+                  column(10,offset = 1,p(summary_text[1])),
+                  column(10,offset = 1,p(summary_text[2])),
+                  column(10,offset = 1,p(summary_text[3])),
          ),
          
        
          tabPanel("Returns",
                   
-                  column(12,p(return_text[1])),
-                  column(12,p(return_text[2])),
-                  column(12,p(return_text[3])),
+                  column(10,offset = 1,p(return_text[1])),
+                  column(10,offset = 1,p(return_text[2])),
+                  column(10,offset = 1,p(return_text[3])),
 
           )
          # tabPanel("Tab 4", 

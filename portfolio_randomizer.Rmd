@@ -370,9 +370,8 @@ spy_returns <- function(spx){
     rename(`sd` = spx_sd)%>%
     rename(`return` = SPY)%>%
     colSums()
-
   
-  return(spx_perf)
+  return(data.frame(t(spx_perf)))
 }
 spy_returns(period2spx)
 
