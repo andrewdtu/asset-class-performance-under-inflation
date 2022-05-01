@@ -416,12 +416,12 @@ ui <- fluidPage(
          
        
          tabPanel("Optimal Portfolio Generator",
-                  column(12,plotlyOutput('ports')),
-                  column(12, plotOutput('linreg')),
-                  column(10,offset = 1,p(return_text[1])),
-                  column(10,offset = 1,p(return_text[2])),
-                  column(10,offset = 1,p(return_text[3])),
-
+                  fluidRow(column(12,plotlyOutput('ports'))),
+                  fluidRow(column(6, plotOutput('linreg')),
+                    fluidRow(column(6,p(return_text[1])),
+                    column(6,p(return_text[2])),
+                    column(6,p(return_text[3])))),
+                  
           )
          # tabPanel("Tab 4", 
          #          tableOutput("table")
