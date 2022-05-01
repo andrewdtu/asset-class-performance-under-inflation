@@ -509,5 +509,14 @@ ggplot(aes(x=date,y=EFFR,group = 1))+
       title = "Period selection"
   )
 }
-plot_effr(effr)
+```
+```{r debug12}
+read_stock_data <- function(filename,start,end){
+  read_csv(filename)%>%
+    select(Date,ticker,Close)%>%
+    pivot_wider(names_from = 'ticker', values_from = 'Close')%>%
+    filter(Date>date(start) & Date<date(end))%>%
+    column_to_rownames('Date')
+}
+
 ```

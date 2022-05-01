@@ -1,14 +1,3 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
-
-
-
 require(tidyverse)
 require(shiny)
 require(tsibble)
@@ -19,41 +8,46 @@ require(shinythemes)
 require(magrittr)
 require(ggrepel)
 require(plotly)
+require(thematic)
+require(shinyWidgets)
 rm(list=ls())
 
-#Initial read in of data
-read_stock_data <- function(filename){
-  main_data <- read_csv(filename)
-  
-  colnames(main_data)[1] <- 'col1'
-  stock_data <- main_data%>%
-    column_to_rownames('col1')%>%
-    select(-'SPY')%>%
-    mutate_all(scale, center = FALSE, scale = FALSE)%>%
-    setNames(sectors$sector)
-  
-  return(stock_data)
-}
+#set period dates
+p1start = '2004-12-01'
+p1end = '2006-08-01'
+p2start = '2016-11-01'
+p2end = '2019-01-01'
 
-read_spx_data <- function(filename){
-  main_data <- read_csv(filename)
-  
-  colnames(main_data)[1] <- 'col1'
-  spx_data <- main_data%>%
-    column_to_rownames('col1')%>%
-    select('SPY')%>%
-      
-    mutate_all(scale, center = FALSE, scale = FALSE)
-  
-  return(spx_data)
+
+
+#Initial read in of data
+
+
+read_stock_data <- function(filename,start,end){
+  read_csv(filename)%>%
+    select(Date,ticker,Close)%>%
+    pivot_wider(names_from = 'ticker', values_from = 'Close')%>%
+    filter(Date>date(start) & Date<date(end))%>%
+    column_to_rownames('Date')%>%
+    select(-SPY)%>%
+    return()
+}
+read_spx_data <- function(filename,start,end){
+  read_csv(filename)%>%
+    select(Date,ticker,Close)%>%
+    pivot_wider(names_from = 'ticker', values_from = 'Close')%>%
+    filter(Date>date(start) & Date<date(end))%>%
+    column_to_rownames('Date')%>%
+    select(SPY)%>%
+    return()
 }
 
 sectors <-read_csv('ticker_to_sector.csv')
 
-period1 <- read_stock_data('stock_period1.csv')
-period2 <- read_stock_data('stock_period2.csv')
-period1spx <- read_spx_data('stock_period1.csv')
-period2spx <- read_spx_data('stock_period2.csv')
+period1 <- read_stock_data('stock.csv',p1start,p1end)
+period2 <- read_stock_data('stock.csv',p2start,p2end)
+period1spx <- read_spx_data('stock.csv',p1start,p1end)
+period2spx <- read_spx_data('stock.csv',p2start,p2end)
 
 tickers <- colnames(period1)
 
@@ -235,7 +229,7 @@ frontier <- function(data,spx) {
       title="Portfolio Optimization Based on Efficient Frontier"
     )+
     scale_color_manual(name = "Portfolio",
-                       values = c("Random" = "black",
+                       values = c("Random" = "purple",
                                   "Minimum Risk" = "red",
                                   "Maximum Return/Risk" = "blue",
                                   'SP500' = 'green')
@@ -367,7 +361,8 @@ sample.options = c(200,1000,5000,10000)
 period.options = c('2005-2008 (Period 1)' = "Period 1",'2016-2019 (Period 2)' = "Period 2")
 
 ui <- fluidPage(
-  
+  #shinythemes::themeSelector(),
+  theme = shinytheme("darkly"),
   titlePanel("STAT 479 Project Milestone 3"),
   # selectInput("period","Period",period.options),
   # selectInput("time","Trend Type",time.options),
@@ -385,7 +380,8 @@ ui <- fluidPage(
         column(4,radioButtons("period", label = "Time Period Selection", choices = period.options, selected = 'Period 1')),
         #column(4,selectInput("period","Period",period.options)),
         column(4,selectInput("time","Trend Type",time.options)),
-        column(4,numericInput("sample", label = 'Number of Portfolios', value = 100)),
+        column(3,numericInput("sample", label = 'Number of Portfolios', value = 100)),
+        column(1,materialSwitch(inputId = "theme", label = "Dark Mode", status = "default"))
         
         
         
@@ -482,7 +478,7 @@ server <- function(input,output) {
 
 
 
-
+thematic_shiny()
 app <- shinyApp(ui = ui, server = server)
 
 app
