@@ -153,36 +153,7 @@ boxes <- function(data) {
 
 
 
-#print(boxes(period1))
 
-#Generates portfolios
-# portfolio_generator <- function(data,num_of_portfolios) {
-#   portfolio = data.frame()
-#   portfolio$returns <- double()
-#   portfolio$sd <- double()
-#   portfolio$`returns/sd` <- double()
-#   
-#   
-#   weights_array = list()
-#   
-#   total_returns = as.double(((tail(data,1)-head(data,1))/head(data,1))[1,])
-#   num_of_stocks = ncol(data)
-#   stock_returns = lead(data,1)/data-1
-#   
-#   for (i in 1:num_of_portfolios){
-#     rnd_nums = runif(ncol(data))
-#     weights = rnd_nums/sum(rnd_nums)
-#     
-#     weights_array <- append(weights_array,list(weights))
-#     portfolio[i,1] <- sum(total_returns*weights)
-#     portfolio_returns <- stock_returns*t(weights)
-#     portfolio[i,2] <- sd(na.omit(as.double(rowSums(portfolio_returns))))
-#     portfolio[i,3] <- as.double(portfolio[i,1])/as.double(portfolio[i,2])
-#     
-#   }
-#   portfolio$weights <- weights_array
-#   return(portfolio)
-# }
 portfolio_generator <- function(data,num_of_portfolios) {
   portfolio = data.frame()
   portfolio$returns <- double()
