@@ -5,10 +5,10 @@ account: andrewtu
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 6210624
-bundleId: 5857441
+bundleId: 5857795
 url: https://andrewtu.shinyapps.io/stat479group3/
-when: 1651430539.16915
-lastSyncTime: 1651430539.16915
+when: 1651440324.35494
+lastSyncTime: 1651440324.35494
 asMultiple: FALSE
 asStatic: FALSE
 ignoredFiles: .gitattributes|.ipynb_checkpoints/portfolio_randomizer-checkpoint.ipynb|.ipynb_checkpoints/scraper-checkpoint.ipynb|.ipynb_checkpoints/Untitled-checkpoint.ipynb|appPlotly.R|eda.Rmd|group3.zip|portfolio_randomizer.ipynb|portfolio_randomizer.Rmd|README.md|scraper.ipynb|STAT 479 Project Shiny.Rmd|STAT479.zip|stock_period1.csv|stock_period2.csv

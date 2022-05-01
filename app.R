@@ -451,13 +451,13 @@ server <- function(input,output) {
   observeEvent(input$show, {
     showModal(modalDialog(
       title = "Info",
-      "The radiobuttons allow selection of time period for analysis, the trend 
+      p("The radiobuttons allow selection of time period for analysis, the trend 
       options in the middle dictate how smooth the line charts for price are and 
-      the number input to the right control how many portfolios are generated.
+      the number input to the right control how many portfolios are generated."),
       
-      The 1st tab shows information of the various sector ETFs we've chosen, the 
+      p("The 1st tab shows information of the various sector ETFs we've chosen, the 
       second tab shows the EFFR, and the third tab is our portfolio generator.
-      "
+      ")
     ))
   })
 
