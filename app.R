@@ -30,6 +30,7 @@ read_stock_data <- function(filename,start,end){
     filter(Date>date(start) & Date<date(end))%>%
     column_to_rownames('Date')%>%
     select(-SPY)%>%
+    setNames(sectors$sector)%>%
     return()
 }
 read_spx_data <- function(filename,start,end){
@@ -61,31 +62,27 @@ summary_text <- scan('summary.txt', character(), sep = '\n')
 
 #Creates a time series ggplot.
 #The ifs determine whether the trend is daily, weekly, or monthly
-time.series <- function(data,time = "Daily") {
+time.series <- function(data,time = "day") {
   longer <- data %>%
     rownames_to_column(var = 'Period') %>%
     mutate(Period = as.Date(Period)) %>%
     pivot_longer(tickers, names_to = "Ticker", values_to = "Price")
   
-  if (time == "Daily") {
-    newdata <- longer
-  }
-  if (time == "Weekly") {
-    newdata <- longer %>%
-      group_by(Period = floor_date(Period, "week"),Ticker) %>%
-      summarize(Price = mean(Price))
-  }
-  if (time == "Monthly") {
-    newdata <- longer %>%
-      group_by(Period = floor_date(Period, "month"),Ticker) %>%
-      summarize(Price = mean(Price))
-  }
+
+  
+
+  newdata <- longer %>%
+    group_by(Period = floor_date(Period, {{time}}),Ticker) %>%
+    summarize(Price = mean(Price))
+
+  time.options_reverse = c('day' = "Daily",'week'="Weekly",'month' = "Monthly")  
+  
   p1 = ggplot(newdata) +
     geom_line(aes(x = Period, y = Price, color = Ticker)) +
     labs(
-      x=paste0("Time (",time,")"),
+      x=paste0("Time (",time.options_reverse[time],")"),
       y="Price scaled proportionately",
-      title=paste0(time," Price Trend")
+      title=paste0(time.options_reverse[time]," Price Trend")
     )+
     scale_color_tableau('Tableau 20')+
     theme(legend.position="bottom")+
@@ -354,7 +351,7 @@ subtract_effr <- function(df){
 ## User Interface
 
 #options lists for interactions
-time.options = c("Daily","Weekly","Monthly")
+time.options = c("Daily" = 'day',"Weekly" = 'week',"Monthly" = 'month')
 sample.options = c(200,1000,5000,10000)
 period.options = c('2005-2007 (Period 1)' = "Period 1",'2016-2019 (Period 2)' = "Period 2")
 

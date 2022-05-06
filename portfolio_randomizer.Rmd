@@ -519,4 +519,6 @@ read_stock_data <- function(filename,start,end){
     column_to_rownames('Date')
 }
 
+
+print(time.options['Daily'])
 ```
